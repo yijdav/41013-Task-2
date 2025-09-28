@@ -1,0 +1,151 @@
+import numpy as np
+from ir_support import UR3
+from spatialmath import SE3
+from spatialgeometry import Cuboid, Cylinder, Mesh
+from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
+from math import pi
+import swift 
+from pathlib import Path
+import matplotlib.pyplot as plt
+import keyboard
+import trimesh
+
+env = None
+class myCobot280:
+    def __init__(self):
+        global env
+        #SET DH PARAMETERS FOR LINKS
+        links = [
+        DHLink(d=0.15, a=0, alpha=1.5708, offset=0),
+        DHLink(d=0, a=-0.2, alpha=0, offset=-1.5708),
+        DHLink(d=0, a=-0.2, alpha=0, offset=0),
+        DHLink(d=-0.15, a=0, alpha=1.5708, offset=-1.5708),
+        DHLink(d=0.1505, a=0, alpha=-1.5708, offset=1.5708),
+        DHLink(d=0.0456, a=0, alpha=0, offset=0)]
+        #SET MESH DIRECTORIES
+        base_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Base.stl")
+        shoulder_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Shoulder.stl")
+        elbow_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Elbow.stl")
+        wrist_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Wrist.stl")
+        ee_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\End Effector.stl")
+        #0.0634->-0.13 
+
+        examplemodel_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\cobot280.stl")
+        #CREATE MESHES
+        scale = [0.001,0.001,0.001]
+        base_mesh = Mesh(base_dir,pose=SE3.Rx(pi/2),color = (0.6,0.5,0.2,1), scale = scale)
+        shoulder_mesh = Mesh(shoulder_dir,pose = SE3(0,-0.15,0)*SE3.Ry(pi/2),color = (0.2,0.2,0.2,1), scale = scale)
+        elbow1_mesh = Mesh(elbow_dir,pose = (SE3.Ry(-pi/2)*SE3.Rx(pi/2)*SE3(-0.151,-0.1,0)),color = (0.2,0.2,0.6,1), scale = scale)
+        elbow2_mesh = Mesh(elbow_dir,pose = (SE3.Ry(pi/2)*SE3.Rx(pi/2)*SE3(0,0.1,0)),color = (0.2,0.6,0.3,1), scale = scale)
+        wrist_mesh = Mesh(wrist_dir,pose=SE3.Rx(pi)*SE3.Ry(pi/2)*SE3(0,-0.0744,0),color = (0.2,0.2,0.2,1), scale = scale)
+        ee_mesh = Mesh(ee_dir,pose=SE3.Rx(-pi/2)*SE3(0,-0.1,0),color = (0.2,0.2,0.2,1), scale = scale)
+        #base_mesh = Cuboid(scale=[0.05,0.05,0.13122],color = [1,0,0,1])
+        #shoulder_mesh = Cuboid(scale = [0.1104,0.05,0.05],color=[0,1,0,1])
+        #elbow1_mesh = Cuboid(scale = [0.096,0.05,0.05],pose=SE3(0,0,0),color=[0,0,1,1])
+        #elbow2_mesh = Cuboid(scale = [0.05,0.05,0.0634],pose=SE3(0,0,0),color=[0.2,0.6,0.2,1])
+        #wrist_mesh = Cuboid(scale = [0.05,0.05,0.07505],color=[0.3,0.3,0.3,1])
+        #ee_mesh = Cuboid(scale = [0.03,0.03,0.0456],color=[0.8,0.8,0.8,1])
+
+        examplemodel_mesh = Mesh(examplemodel_dir,color=[0.7,0.2,0.2,1],scale=scale,pose = SE3(0.8,0,0)*SE3.Rx(pi/2))
+        # verts = np.array(base_mesh.)   # access underlying trimesh object
+        # print("Min:", verts.min(axis=0))
+        # print("Max:", verts.max(axis=0))
+        # print("Center:", verts.mean(axis=0))
+
+        # links1 = DHLink(d=0.13122, a=0, alpha=1.5708, offset=0)
+        # links2 = DHLink(d=0, a=-0.1104, alpha=0, offset=-1.5708)
+        # links3 = DHLink(d=0, a=-0.96, alpha=0, offset=0)
+        # links4 = DHLink(d=0.634, a=0, alpha=1.5708, offset=-1.5708)
+        # links5 = DHLink(d=0.7505, a=0, alpha=-1.5708, offset=1.5708)
+        # links6 = DHLink(d=0.456, a=0, alpha=0, offset=0)
+        #ATTACH MESHES TO LINKS
+        #links[0].geometry = [base_mesh]
+        links[0].geometry = [shoulder_mesh]
+        links[1].geometry = [elbow1_mesh]
+        links[2].geometry = [elbow2_mesh]
+        links[3].geometry = [wrist_mesh]
+        links[4].geometry = [ee_mesh]
+        self.robot = DHRobot(links)
+        
+        #ADD CYLINDERS TO REPRESENT AXES
+        # axis1 = self.robot.A(0,self.robot.q)
+        # axis2 = self.robot.A(1,self.robot.q)
+        # axis3 = self.robot.A(2,self.robot.q)
+        # axis4 = self.robot.A(3,self.robot.q)        
+        # axis5 = self.robot.A(4,self.robot.q)
+        # axis6 = self.robot.A(5,self.robot.q)
+        # axslength = 0.2
+        # drawaxis1 = Cylinder(0.01, axslength, color = [1.0,0.0,0.0,1.0], pose = axis1)
+        # drawaxis2 = Cylinder(0.01, axslength, color = [1.0,0.0,0.0,1.0], pose = axis2)
+        # drawaxis3 = Cylinder(0.01, axslength, color = [1.0,0.0,0.0,1.0], pose = axis3)
+        # drawaxis4 = Cylinder(0.01, axslength, color = [1.0,0.0,0.0,1.0], pose = axis4)
+        # drawaxis5 = Cylinder(0.01, axslength, color = [1.0,0.0,0.0,1.0], pose = axis5)
+        # drawaxis6 = Cylinder(0.01, axslength, color = [1.0,0.0,0.0,1.0], pose = axis6) 
+        # env.add(drawaxis1)
+        # env.add(drawaxis2)
+        # env.add(drawaxis3)
+        # env.add(drawaxis4)
+        # env.add(drawaxis5)
+        # env.add(drawaxis6)
+
+        env.add(base_mesh)
+        env.add(self.robot)
+        offset = SE3(0,0,0.14)
+        self.robot.base = self.robot.base*offset
+        env.add(examplemodel_mesh)
+        env.step(0)
+
+
+
+        #USE THIS TO TEST ROBOT IN PYTHON
+        q = [0,0,0,0,0,0]
+        plt.close()
+        fig = self.robot.teach(q, block=False)
+        while not keyboard.is_pressed('enter'):
+            fig.step(0.05)
+        fig.close()
+
+        traj = jtraj([0,0,0,0,0,0],[1,1,1,1,1,1],30)
+        for q in traj.q:
+            self.robot.q = q
+            env.step(0.05)
+        traj = jtraj(self.robot.q,[-1,-1,-1,-1,-1,-1],30)
+        for q in traj.q:
+            self.robot.q = q
+            env.step(0.05)
+
+        env.hold()
+
+    def get_robot(self):
+        return self.robot
+        
+        #return self.robot
+        
+
+class Assignment2:
+    
+    def CreateEnvironment(self):
+        #STEUP SWIFT ENV
+        global env
+        env = swift.Swift()
+        env.launch(realtime=True)
+        
+        #ADD COBOT
+        mycobot280 = myCobot280()
+        # _mycobot280 = mycobot280.get_robot()
+
+        # #env.add(mycobot280.elbow_mesh)
+        # env.add(_mycobot280)
+        # _mycobot280.base = SE3(0,0,0)
+        # _mycobot280.q = [0,0,0,0,0,0]
+
+        env.step(0)
+        
+        
+
+    def AnimateCobot280(self):
+        pass
+
+a2 = Assignment2()
+
+a2.CreateEnvironment()

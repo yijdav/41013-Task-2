@@ -1,0 +1,129 @@
+import numpy as np
+from ir_support import UR3
+from spatialmath import SE3
+from spatialgeometry import Cuboid, Cylinder, Mesh
+from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
+from math import pi
+import swift 
+from pathlib import Path
+import matplotlib.pyplot as plt
+import keyboard
+import spatialmath.base as spb
+import trimesh
+import roboticstoolbox as rtb
+import os
+import time
+# -----------------------------------------------------------------------------------#
+class Kuka(DHRobot):
+    def __init__(self):
+        links = [
+            DHLink(a=0,      alpha=0, d=0.750, offset=0),
+            DHLink(a=0.35,  alpha=0,    d=0,     offset=0),
+            DHLink(a=1.25,  alpha=0,    d=0,     offset=0),
+            DHLink(a=0,  alpha=0, d=-0.055, offset=0),
+            DHLink(a=1.1,      alpha=0, d=0,     offset=0),
+            DHLink(a=0.23,      alpha=0,    d=0, offset=0)
+        ]
+        mesh_dir = "kuka150Visuals"
+        mesh_files = [
+            "base_link.stl",
+            "link_1.stl",
+            "link_2.stl",
+            "link_3.stl",
+            "link_4.stl",
+            "link_5.stl"
+        ]
+        # Example transforms for each mesh (adjust as needed for your STL alignment)
+        mesh_transforms = [
+            SE3(),
+            SE3(),
+            SE3(),
+            SE3(),
+            SE3(),
+            SE3()
+        ]
+        sca = 0.1
+        for i, link in enumerate(links):
+            mesh_path = f"{mesh_dir}/{mesh_files[i]}"
+            print(f"Trying to load mesh: {mesh_path}")
+            try:
+                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i])]
+                print(f"Loaded mesh: {mesh_path}")
+            except Exception as e:
+                print(f"Failed to load mesh {mesh_path}: {e}")
+        DHRobot.__init__(self, links, name='KUKA')
+        # Set a test joint configuration for visualization
+        self.q = [0, -pi/2, 0, 0, 0, 0]
+        self._qtest = [0,-pi/2,0,0,0,0]
+
+
+    # -----------------------------------------------------------------------------------#
+    def test(self):
+        """
+        Test the class by adding 3d objects into a new Swift window and do a simple movement
+        """
+        env = swift.Swift()
+        env.launch(realtime= True)
+        self.q = self._qtest
+        self.base = SE3(0.5,0.5,0)
+        env.add(self)
+
+        q_goal = [self.q[i]-pi/3 for i in range(self.n)]
+        qtraj = rtb.jtraj(self.q, q_goal, 50).q
+        # fig = self.plot(self.q)
+        for q in qtraj:
+            self.q = q
+            env.step(0.02)
+            # fig.step(0.01)
+        # env.hold()
+
+# ---------------------------------------------------------------------------------------#
+if __name__ == "__main__":
+    r = Kuka()
+    r.test()
+
+
+"""
+class KukaKR6(DHRobot):
+    def __init__(self):
+        links = [
+            DHLink(a=0,      alpha=pi/2, d=0.400, offset=0),
+            DHLink(a=0.025,  alpha=0,    d=0,     offset=0),
+            DHLink(a=0.455,  alpha=0,    d=0,     offset=0),
+            DHLink(a=0.035,  alpha=pi/2, d=0.420, offset=0),
+            DHLink(a=0,      alpha=-pi/2,d=0,     offset=0),
+            DHLink(a=0,      alpha=0,    d=0.080, offset=0)
+        ]
+        mesh_dir = "kuka"
+        mesh_files = [
+            "base_link.stl",
+            "link_1.stl",
+            "link_2.stl",
+            "link_3.stl",
+            "link_4.stl",
+            "link_5.stl"
+        ]
+        # Example transforms for each mesh (adjust as needed for your STL alignment)
+        mesh_transforms = [
+            SE3(),
+            SE3(0, 0, 0.1),
+            SE3(0, 0, 0.1),
+            SE3(0, 0, 0.1),
+            SE3(0, 0, 0.1),
+            SE3(0, 0, 0.1)
+        ]
+        for i, link in enumerate(links):
+            mesh_path = f"{mesh_dir}/{mesh_files[i]}"
+            print(f"Trying to load mesh: {mesh_path}")
+            link.geometry = [Mesh(mesh_path, scale=[0.01, 0.01, 0.01], pose=mesh_transforms[i])]
+            print(f"Loaded mesh: {mesh_path}")
+        DHRobot.__init__(self, links, name='KUKA KR6')
+        # Set a test joint configuration for visualization
+        self.q = [0, -pi/2, 0, 0, 0, 0]
+
+# launch the environment and visualize with Swift
+robot = KukaKR6()
+env = swift.Swift()
+env.launch()
+env.add(robot)
+"""

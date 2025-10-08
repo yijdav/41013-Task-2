@@ -13,7 +13,6 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
-from AssessmentTwo import myCobot280
 
 # -----------------------------------------------------------------------------------#
 class Kuka(DHRobot):

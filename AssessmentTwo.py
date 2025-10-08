@@ -13,7 +13,6 @@ import trimesh
 env = None
 class myCobot280:
     def __init__(self,base_pos):
-        global env
         #SET DH PARAMETERS FOR LINKS
         links = [
         DHLink(d=0.15, a=0, alpha=1.5708, offset=0),
@@ -155,33 +154,33 @@ class Assignment2:
         #     env.step(0.05)
 
 
-        traj = jtraj([0,0,self.mycobot280.qlim[0,2],0,0,0],[0,0,self.mycobot280.qlim[1,2],0,0,0],30)
-        for q in traj.q:
-            self.mycobot280.q = q
-            env.step(0.05)
+        # traj = jtraj([0,0,self.mycobot280.qlim[0,2],0,0,0],[0,0,self.mycobot280.qlim[1,2],0,0,0],30)
+        # for q in traj.q:
+        #     self.mycobot280.q = q
+        #     env.step(0.05)
 
         #DRAW A SQUARE
-        # sideLength = 0.3
-        # origin = SE3(0.3,0,0)#self.mycobot280.fkine(self.mycobot280.q)
-        # initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        # self.mycobot280.q = initialq
-        # squarePoses = [
-        #     origin * SE3(0,0,0),
-        #     origin * SE3(sideLength,0,0),
-        #     origin * SE3(sideLength,sideLength,0),
-        #     origin * SE3(0,sideLength,0),
-        #     origin * SE3(0,0,0)
-        # ]
-        # for i in np.arange(0,len(squarePoses)+1):
-        #     endq = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        #     traj = jtraj(self.mycobot280.q,endq,30)
-        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
-        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
-        #     env.add(penDot)
-        #     for q in traj.q:
-        #         self.mycobot280.q = q
+        sideLength = 0.3
+        origin = SE3(0.3,0,0)#self.mycobot280.fkine(self.mycobot280.q)
+        initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        self.mycobot280.q = initialq
+        squarePoses = [
+            origin * SE3(0,0,0),
+            origin * SE3(sideLength,0,0),
+            origin * SE3(sideLength,sideLength,0),
+            origin * SE3(0,sideLength,0),
+            origin * SE3(0,0,0)
+        ]
+        for i in np.arange(0,len(squarePoses)+1):
+            endq = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+            traj = jtraj(self.mycobot280.q,endq,30)
+            penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
+            penDot.T = self.mycobot280.fkine(self.mycobot280.q)
+            env.add(penDot)
+            for q in traj.q:
+                self.mycobot280.q = q
                 
-        #         env.step(0.05)
+                env.step(0.05)
         
 
         env.hold()

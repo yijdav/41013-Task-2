@@ -23,15 +23,6 @@ class myCobot280:
         DHLink(d=0.1505, a=0, alpha=-1.5708, offset=1.5708),
         DHLink(d=0.0456, a=0, alpha=0, offset=0)]
         #SET MESH DIRECTORIES
-        mesh_dirs = [
-            "mycobot280_meshes\Base.stl",
-            "mycobot280_meshes\Shoulder.stl",
-            "mycobot280_meshes\Elbow.stl",
-            "mycobot280_meshes\Wrist.stl",
-            "mycobot280_meshes\End Effector.stl"
-        ]
-
-
         base_dir = "mycobot280_meshes\Base.stl"
         shoulder_dir = "mycobot280_meshes\Shoulder.stl"
         elbow_dir = "mycobot280_meshes\Elbow.stl"

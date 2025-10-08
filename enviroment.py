@@ -21,4 +21,5 @@ if __name__ == "__main__":
     r = Kuka()
     env = swift.Swift()
     env.launch(realtime=True)
-    env.add(r)
+    r.add_to_env(env)
+    env.hold()

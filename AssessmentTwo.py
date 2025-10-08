@@ -1,7 +1,7 @@
 import numpy as np
 from ir_support import UR3
 from spatialmath import SE3
-from spatialgeometry import Cuboid, Cylinder, Mesh
+from spatialgeometry import Cuboid, Cylinder, Mesh, Sphere
 from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
 from math import pi
 import swift 
@@ -12,7 +12,7 @@ import trimesh
 
 env = None
 class myCobot280:
-    def __init__(self):
+    def __init__(self,base_pos):
         global env
         #SET DH PARAMETERS FOR LINKS
         links = [
@@ -67,6 +67,9 @@ class myCobot280:
         links[4].geometry = [ee_mesh]
         self.robot = DHRobot(links)
         
+        self.robot.links[1].qlim = [-1.745,1.745]
+        self.robot.links[2].qlim = [-2.7,2.7]
+
         #ADD CYLINDERS TO REPRESENT AXES
         # axis1 = self.robot.A(0,self.robot.q)
         # axis2 = self.robot.A(1,self.robot.q)
@@ -87,14 +90,16 @@ class myCobot280:
         # env.add(drawaxis4)
         # env.add(drawaxis5)
         # env.add(drawaxis6)
+        #base_pos = SE3(0.5,1,0.2)
+        #THIS SETS THE ROBOTS INITIAL POSITION WITH THE BASE IN CORRECT POS
+        offset = SE3(0,0,0.14)
+        base_mesh.T = base_pos*base_mesh.T
+        self.robot.base = self.robot.base*base_pos*offset
 
         env.add(base_mesh)
-        env.add(self.robot)
-        offset = SE3(0,0,0.14)
-        self.robot.base = self.robot.base*offset
-        env.add(examplemodel_mesh)
+        env.add(self.robot)        
+        #env.add(examplemodel_mesh)
         env.step(0)
-
 
 
         #USE THIS TO TEST ROBOT IN PYTHON
@@ -105,16 +110,6 @@ class myCobot280:
             fig.step(0.05)
         fig.close()
 
-        traj = jtraj([0,0,0,0,0,0],[1,1,1,1,1,1],30)
-        for q in traj.q:
-            self.robot.q = q
-            env.step(0.05)
-        traj = jtraj(self.robot.q,[-1,-1,-1,-1,-1,-1],30)
-        for q in traj.q:
-            self.robot.q = q
-            env.step(0.05)
-
-        env.hold()
 
     def get_robot(self):
         return self.robot
@@ -130,22 +125,70 @@ class Assignment2:
         env = swift.Swift()
         env.launch(realtime=True)
         
-        #ADD COBOT
-        mycobot280 = myCobot280()
-        # _mycobot280 = mycobot280.get_robot()
+        #ADD COBOT AND SET POSITION
+        initial_pos = SE3(0,0,0)
+        cobotHolder = myCobot280(initial_pos)
 
-        # #env.add(mycobot280.elbow_mesh)
-        # env.add(_mycobot280)
-        # _mycobot280.base = SE3(0,0,0)
-        # _mycobot280.q = [0,0,0,0,0,0]
+        self.mycobot280 = cobotHolder.get_robot()
+
 
         env.step(0)
         
         
 
     def AnimateCobot280(self):
+        
+        #ARBITRARY TRAJ TO TEST ANIMATION
+        # traj = jtraj([0,0,0,0,0,0],[1,1,1,1,1,1],50)
+        # for q in traj.q:
+        #     self.mycobot280.q = q
+        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
+        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
+        #     env.add(penDot)
+        #     env.step(0.05)
+        # traj = jtraj(self.mycobot280.q,[-1,-1,-1,-1,-1,-1],50)
+        # for q in traj.q:
+        #     self.mycobot280.q = q
+        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
+        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
+        #     env.add(penDot)
+        #     env.step(0.05)
+
+
+        traj = jtraj([0,0,self.mycobot280.qlim[0,2],0,0,0],[0,0,self.mycobot280.qlim[1,2],0,0,0],30)
+        for q in traj.q:
+            self.mycobot280.q = q
+            env.step(0.05)
+
+        #DRAW A SQUARE
+        # sideLength = 0.3
+        # origin = SE3(0.3,0,0)#self.mycobot280.fkine(self.mycobot280.q)
+        # initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        # self.mycobot280.q = initialq
+        # squarePoses = [
+        #     origin * SE3(0,0,0),
+        #     origin * SE3(sideLength,0,0),
+        #     origin * SE3(sideLength,sideLength,0),
+        #     origin * SE3(0,sideLength,0),
+        #     origin * SE3(0,0,0)
+        # ]
+        # for i in np.arange(0,len(squarePoses)+1):
+        #     endq = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        #     traj = jtraj(self.mycobot280.q,endq,30)
+        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
+        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
+        #     env.add(penDot)
+        #     for q in traj.q:
+        #         self.mycobot280.q = q
+                
+        #         env.step(0.05)
+        
+
+        env.hold()
         pass
 
 a2 = Assignment2()
 
 a2.CreateEnvironment()
+a2.AnimateCobot280()
+#myCobot280()

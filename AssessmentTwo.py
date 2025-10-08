@@ -171,8 +171,9 @@ class Assignment2:
             origin * SE3(0,sideLength,0),
             origin * SE3(0,0,0)
         ]
-        for i in np.arange(0,len(squarePoses)+1):
+        for i in np.arange(0,len(squarePoses)):
             endq = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+            endq = self.shortest_path(self.mycobot280.q,endq)
             traj = jtraj(self.mycobot280.q,endq,30)
             penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
             penDot.T = self.mycobot280.fkine(self.mycobot280.q)
@@ -184,7 +185,15 @@ class Assignment2:
         
 
         env.hold()
-        pass
+
+    #THIS FUNCTION NORMALISED DISTANCES SO INSTEAD OF GOING LONG WAY JOINTS GO SHORTWAY IN JTRAJ        
+    def shortest_path(self, q_start, q_goal):
+        q_start = np.asarray(q_start)
+        q_goal = np.asarray(q_goal)
+        dq = q_goal - q_start
+        # Wrap difference into [-pi, pi]
+        dq = (dq + pi) % (2 * pi) - pi
+        return q_start + dq
 
 a2 = Assignment2()
 

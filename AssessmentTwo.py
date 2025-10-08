@@ -23,11 +23,20 @@ class myCobot280:
         DHLink(d=0.1505, a=0, alpha=-1.5708, offset=1.5708),
         DHLink(d=0.0456, a=0, alpha=0, offset=0)]
         #SET MESH DIRECTORIES
-        base_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Base.stl")
-        shoulder_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Shoulder.stl")
-        elbow_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Elbow.stl")
-        wrist_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\Wrist.stl")
-        ee_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\End Effector.stl")
+        mesh_dirs = [
+            "mycobot280_meshes\Base.stl",
+            "mycobot280_meshes\Shoulder.stl",
+            "mycobot280_meshes\Elbow.stl",
+            "mycobot280_meshes\Wrist.stl",
+            "mycobot280_meshes\End Effector.stl"
+        ]
+
+
+        base_dir = "mycobot280_meshes\Base.stl"
+        shoulder_dir = "mycobot280_meshes\Shoulder.stl"
+        elbow_dir = "mycobot280_meshes\Elbow.stl"
+        wrist_dir = "mycobot280_meshes\Wrist.stl"
+        ee_dir = "mycobot280_meshes\End Effector.stl"
         #0.0634->-0.13 
 
         examplemodel_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\cobot280.stl")

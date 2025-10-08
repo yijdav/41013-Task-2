@@ -15,6 +15,7 @@ import os
 import time
 # -----------------------------------------------------------------------------------#
 class Kuka(DHRobot):
+    #https://github.com/ros-industrial/kuka_experimental
     def __init__(self):
         links = [
             DHLink(a=0,      alpha=0, d=0.750, offset=0),
@@ -75,7 +76,7 @@ class Kuka(DHRobot):
             self.q = q
             env.step(0.02)
             # fig.step(0.01)
-        # env.hold()
+        env.hold()
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":

@@ -18,14 +18,14 @@ class Kuka(DHRobot):
     #https://github.com/ros-industrial/kuka_experimental
     def __init__(self):
         links = [
-            DHLink(a=0,      alpha=0, d=0.750, offset=0),
-            DHLink(a=0.35,  alpha=0,    d=0,     offset=0),
-            DHLink(a=1.25,  alpha=0,    d=0,     offset=0),
-            DHLink(a=0,  alpha=0, d=-0.055, offset=0),
-            DHLink(a=1.1,      alpha=0, d=0,     offset=0),
-            DHLink(a=0.23,      alpha=0,    d=0, offset=0)
+            DHLink(a=0,      alpha=0, d=0, offset=0),
+            DHLink(a=0,  alpha=0,    d=0.74,     offset=0),
+            DHLink(a=0.35,  alpha=0,    d=0.05,     offset=pi/3),
+            DHLink(a=1.25,  alpha=0, d=0.01, offset=pi/3),
+            DHLink(a=0,      alpha=0, d=-0.05,     offset=pi/3),
+            DHLink(a=1.1,      alpha=0,    d=0, offset=pi/3)
         ]
-        mesh_dir = "kuka150"
+        mesh_dir = "kuka150mesh"
         mesh_files = [
             "base_link.stl",
             "link_1.stl",
@@ -43,7 +43,7 @@ class Kuka(DHRobot):
             SE3(),
             SE3()
         ]
-        sca = 0.1
+        sca = 1.0  # Scale factor for the meshes
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
             print(f"Trying to load mesh: {mesh_path}")

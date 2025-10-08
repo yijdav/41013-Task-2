@@ -14,9 +14,9 @@ import roboticstoolbox as rtb
 import os
 import time
 
-# -----------------------------------------------------------------------------------#
-class abg(DHRobot):
-    #https://github.com/ros-industrial/kuka_experimental
+# ------------------------------------------- ----------------------------------------#
+class abb(DHRobot):
+    #https://github.com/ros-industrial/abb/tree/kinetic-devel/abb_crb15000_support/meshes/crb15000_5_95
     def __init__(self):
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
@@ -26,7 +26,7 @@ class abg(DHRobot):
             DHLink(a=0,      alpha=0, d=0.11,     offset=pi/3),
             DHLink(a=0.46,      alpha=0,    d=0, offset=pi/3)
         ]
-        mesh_dir = "agb_robot_mesh"
+        mesh_dir = "abb_robot_mesh"
         mesh_files = [
             "base_link (1).stl",
             "link_1 (1).stl",

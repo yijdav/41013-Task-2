@@ -13,5 +13,12 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
+from AssessmentTwo import myCobot280
 from kuka_ropbot import Kuka
 # -----------------------------------------------------------------------------------#
+
+if __name__ == "__main__":
+    r = Kuka()
+    env = swift.Swift()
+    env.launch(realtime=True)
+    env.add(r)

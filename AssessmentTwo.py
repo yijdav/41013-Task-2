@@ -8,7 +8,6 @@ import swift
 from pathlib import Path
 import matplotlib.pyplot as plt
 import keyboard
-import trimesh
 
 env = None
 class myCobot280:
@@ -135,8 +134,136 @@ class Assignment2:
         
         
 
-    def AnimateCobot280(self):
         
+    def rmrc_draw_square(robot, env, origin_SE3, side, steps_per_side=80, dt=0.05):
+        """
+        Move robot end-effector along a square using RMRC (velocity-level IK).
+        - robot: DHRobot instance (self.mycobot280)
+        - env: swift env
+        - origin_SE3: SE3 specifying square origin in world frame
+        - side: side length (meters)
+        - steps_per_side: number of RMRC steps per square side
+        - dt: timestep (s)
+        """
+        # copy current joint vector to a numpy array of floats
+        q = np.asarray(robot.q, dtype=float)
+
+        # Desired orientation: keep the current EE orientation fixed while drawing
+        T0 = robot.fkine(q)         # current EE pose (SE3)
+        R_des = T0.R                # 3x3 rotation matrix target
+
+        # corner positions in world coordinates (numpy arrays)
+        p0 = origin_SE3.t
+        corners = [
+            p0,
+            p0 + np.array([side, 0.0, 0.0]),
+            p0 + np.array([side, side, 0.0]),
+            p0 + np.array([0.0, side, 0.0]),
+            p0
+        ]
+
+        # Gains (tune if needed)
+        Kp_pos = 5.0   # proportional gain for translation (m/s per m)
+        Kp_rot = 2.0   # proportional gain for rotation (rad/s per rad)
+
+        # leave sparse pen-dots to visualize path
+        dot_skip = max(1, steps_per_side // 10)
+
+        for i in range(len(corners)-1):
+            p_start = corners[i]
+            p_goal  = corners[i+1]
+
+            for step in range(steps_per_side):
+                s = (step + 1) / float(steps_per_side)   # interpolation parameter (0..1)
+                p_des = (1 - s) * p_start + s * p_goal   # linear interpolation in Cartesian space
+
+                # CURRENT robot pose
+                Tcur = robot.fkine(q)
+                p_cur = Tcur.t
+                R_cur = Tcur.R
+
+                # Position error
+                e_p = p_des - p_cur     # 3-vector
+
+                # Rotation error: axis-angle from R_err = R_des * R_cur^T
+                R_err = R_des.dot(R_cur.T)
+                tr = np.trace(R_err)
+                # numeric clamp for acos argument
+                acos_arg = (tr - 1.0) / 2.0
+                acos_arg = max(-1.0, min(1.0, acos_arg))
+                angle = np.arccos(acos_arg)
+                if abs(angle) < 1e-8:
+                    e_rot = np.zeros(3)
+                else:
+                    # axis = (1/(2 sin theta)) * [R32-R23, R13-R31, R21-R12]
+                    denom = 2.0 * np.sin(angle)
+                    axis = np.array([
+                        (R_err[2,1] - R_err[1,2]) / denom,
+                        (R_err[0,2] - R_err[2,0]) / denom,
+                        (R_err[1,0] - R_err[0,1]) / denom
+                    ])
+                    e_rot = axis * angle   # orientation error vector (3)
+
+                # Build 6x1 error twist (v; omega)
+                x_err = np.hstack((Kp_pos * e_p, Kp_rot * e_rot))  # shape (6,)
+
+                # Jacobian at current q (6 x n)
+                J = robot.jacob0(q)  # expects numpy array
+
+                # Damped least squares (adaptive damping using manipulability)
+                JJt = J.dot(J.T)
+                # manipulability measure (Yoshikawa)
+                try:
+                    manip = np.sqrt(abs(np.linalg.det(JJt)))
+                except Exception:
+                    manip = 0.0
+
+                # adaptive damping: increase damping near singularity
+                lam0 = 0.01
+                if manip < 1e-3:
+                    lam = 0.1
+                else:
+                    lam = lam0
+
+                inv_term = np.linalg.inv(JJt + (lam**2) * np.eye(JJt.shape[0]))
+                J_pinv = J.T.dot(inv_term)   # damped pseudoinverse (n x 6)
+
+                # joint velocity
+                qdot = J_pinv.dot(x_err)     # (n,)
+
+                # integrate (Euler)
+                q = q + qdot * dt
+
+                # optionally clamp to joint limits if defined
+                if hasattr(robot, "qlim"):
+                    lower = np.array(robot.qlim[0, :], dtype=float)
+                    upper = np.array(robot.qlim[1, :], dtype=float)
+                    # for any NaN limits, skip clamp
+                    if not np.any(np.isnan(lower)):
+                        q = np.maximum(q, lower)
+                    if not np.any(np.isnan(upper)):
+                        q = np.minimum(q, upper)
+
+                # write back to robot (use Python list to avoid numpy scalar JSON issues)
+                robot.q = q.tolist()
+
+                # place a small sphere occasionally to visualize the trace
+                if (step % dot_skip) == 0:
+                    dot = Sphere(radius=0.004, color=[0, 0, 1, 1], pose=robot.fkine(q))
+                    env.add(dot)
+
+                env.step(dt)
+
+        # halt after drawing
+        env.hold()
+            
+
+        #env.hold()
+
+    def AnimateCobot280(self):
+        origin = SE3(0.3,0,0)
+        sideLength = 0.3
+        rmrc_draw_square(self.mycobot280, env, origin, sideLength, steps_per_side=80, dt=0.05)
         #ARBITRARY TRAJ TO TEST ANIMATION
         # traj = jtraj([0,0,0,0,0,0],[1,1,1,1,1,1],50)
         # for q in traj.q:
@@ -160,31 +287,29 @@ class Assignment2:
         #     env.step(0.05)
 
         #DRAW A SQUARE
-        sideLength = 0.3
-        origin = SE3(0.3,0,0)#self.mycobot280.fkine(self.mycobot280.q)
-        initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        self.mycobot280.q = initialq
-        squarePoses = [
-            origin * SE3(0,0,0),
-            origin * SE3(sideLength,0,0),
-            origin * SE3(sideLength,sideLength,0),
-            origin * SE3(0,sideLength,0),
-            origin * SE3(0,0,0)
-        ]
-        for i in np.arange(0,len(squarePoses)):
-            endq = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-            endq = self.shortest_path(self.mycobot280.q,endq)
-            traj = jtraj(self.mycobot280.q,endq,30)
-            penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
-            penDot.T = self.mycobot280.fkine(self.mycobot280.q)
-            env.add(penDot)
-            for q in traj.q:
-                self.mycobot280.q = q
+        # sideLength = 0.3
+        # origin = SE3(0.3,0,0)#self.mycobot280.fkine(self.mycobot280.q)
+        # initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        # self.mycobot280.q = initialq
+        # squarePoses = [
+        #     origin * SE3(0,0,0),
+        #     origin * SE3(sideLength,0,0),
+        #     origin * SE3(sideLength,sideLength,0),
+        #     origin * SE3(0,sideLength,0),
+        #     origin * SE3(0,0,0)
+        # ]
+        # for i in np.arange(0,len(squarePoses)):
+        #     endq = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        #     endq = self.shortest_path(self.mycobot280.q,endq)
+        #     traj = jtraj(self.mycobot280.q,endq,30)
+        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
+        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
+        #     env.add(penDot)
+        #     for q in traj.q:
+        #         self.mycobot280.q = q
                 
-                env.step(0.05)
-        
+        #         env.step(0.05)
 
-        env.hold()
 
     #THIS FUNCTION NORMALISED DISTANCES SO INSTEAD OF GOING LONG WAY JOINTS GO SHORTWAY IN JTRAJ        
     def shortest_path(self, q_start, q_goal):

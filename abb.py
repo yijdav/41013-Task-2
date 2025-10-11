@@ -20,11 +20,11 @@ class abb(DHRobot):
     def __init__(self):
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
-            DHLink(a=0,  alpha=0,    d=0.26,     offset=0),
-            DHLink(a=0,  alpha=0,    d=0,     offset=pi/3),
-            DHLink(a=0,  alpha=0, d=0.44, offset=pi/3),
-            DHLink(a=0,      alpha=0, d=0.11,     offset=pi/3),
-            DHLink(a=0.46,      alpha=0,    d=0, offset=pi/3)
+            DHLink(a=0,  alpha=pi/2,    d=0.26,     offset=0),
+            DHLink(a=-0.7,  alpha=-pi,    d=0,     offset=0),
+            DHLink(a=0,  alpha=pi/2 , d=0, offset=pi/2),
+            DHLink(a=0,      alpha=0, d=0.11,     offset=-pi/2),
+            DHLink(a=0.46,      alpha=0,    d=0, offset=0)
         ]
         mesh_dir = "abb_robot_mesh"
         mesh_files = [
@@ -38,9 +38,9 @@ class abb(DHRobot):
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
-            SE3(),
-            SE3(),
-            SE3(),
+            SE3().Rx(-pi/2),
+            SE3().Rx(pi/2),
+            SE3().Ry(-pi/2),
             SE3(),
             SE3()
         ]
@@ -67,19 +67,22 @@ class abb(DHRobot):
         env = swift.Swift()
         env.launch(realtime= True)
         self.q = self._qtest
-        self.base = SE3(0.5,0.5,0)
+        self.base = SE3(0,0,0)
         env.add(self)
 
-        q_goal = [self.q[i]-pi/3 for i in range(self.n)]
-        qtraj = rtb.jtraj(self.q, q_goal, 50).q
-        # fig = self.plot(self.q)
+        joint = 3  # Change this to test different joints (0 to 5)
+        q_goal = self.q.copy()
+        q_goal[joint] = self.q[joint] - 6 * pi  
+
+        qtraj = rtb.jtraj(self.q, q_goal, 300).q
         for q in qtraj:
             self.q = q
             env.step(0.02)
-            # fig.step(0.01)
+
+            
         env.hold()
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    r = abg()
+    r = abb()
     r.test()

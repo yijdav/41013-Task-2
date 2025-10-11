@@ -20,11 +20,11 @@ class Kuka(DHRobot):
     def __init__(self):
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
-            DHLink(a=0,  alpha=0,    d=0.74,     offset=0),
-            DHLink(a=0.35,  alpha=0,    d=0.05,     offset=pi/3),
-            DHLink(a=1.25,  alpha=0, d=0.01, offset=pi/3),
-            DHLink(a=0,      alpha=0, d=-0.05,     offset=pi/3),
-            DHLink(a=1.1,      alpha=0,    d=0, offset=pi/3)
+            DHLink(a=0.35,  alpha=pi/2,    d=0.74,     offset=0),
+            DHLink(a=1.25,  alpha=0,    d=0.05,     offset=0),
+            DHLink(a=0,  alpha=pi/2, d=0, offset=0),
+            DHLink(a=0,      alpha=-pi/2, d=-0.05,     offset=0),
+            DHLink(a=1.1,      alpha=0,    d=0, offset=0)
         ]
         mesh_dir = "kuka150mesh"
         mesh_files = [
@@ -38,21 +38,16 @@ class Kuka(DHRobot):
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
+            SE3().Rx(-pi/2)*SE3(-0.35,-0.1,0),
+            SE3().Rx(-pi/2)*SE3(-1.25,0,0),
             SE3(),
-            SE3(),
-            SE3(),
-            SE3(),
+            SE3().Ry(-pi/2).Rx(-pi/2),
             SE3()
         ]
         sca = 1.0  # Scale factor for the meshes
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
-            print(f"Trying to load mesh: {mesh_path}")
-            try:
-                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i])]
-                print(f"Loaded mesh: {mesh_path}")
-            except Exception as e:
-                print(f"Failed to load mesh {mesh_path}: {e}")
+            link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i])]
         DHRobot.__init__(self, links, name='KUKA')
         # Set a test joint configuration for visualization
         self.q = [0, -pi/2, 0, 0, 0, 0]
@@ -67,19 +62,29 @@ class Kuka(DHRobot):
         env = swift.Swift()
         env.launch(realtime= True)
         self.q = self._qtest
-        self.base = SE3(0.5,0.5,0)
+        self.base = SE3(0.5,0,0)
         env.add(self)
 
-        q_goal = [self.q[i]-pi/3 for i in range(self.n)]
-        qtraj = rtb.jtraj(self.q, q_goal, 50).q
-        # fig = self.plot(self.q)
+        joint = 2  # Change this to test different joints (0 to 5)
+        q_goal = self.q.copy()
+        q_goal[joint] = self.q[joint] - 6 * pi  
+
+        qtraj = rtb.jtraj(self.q, q_goal, 300).q
         for q in qtraj:
             self.q = q
             env.step(0.02)
-            # fig.step(0.01)
+
+            
         env.hold()
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    r = Kuka()
-    r.test()
+    Kuka().test()
+
+    # env = swift.Swift()
+    # env.launch(realtime=True)
+    # r = Kuka()
+    # r.base = SE3(0, 0, 0)
+    # env.add(r)
+
+    # env.hold()

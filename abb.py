@@ -21,7 +21,7 @@ class abb(DHRobot):
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
             DHLink(a=0,  alpha=pi/2,    d=0.26,     offset=0),
-            DHLink(a=-0.7,  alpha=-pi,    d=0,     offset=0),
+            DHLink(a=0,  alpha=-pi,    d=0,     offset=0),
             DHLink(a=0,  alpha=pi/2 , d=0, offset=pi/2),
             DHLink(a=0,      alpha=0, d=0.11,     offset=-pi/2),
             DHLink(a=0.46,      alpha=0,    d=0, offset=0)
@@ -39,8 +39,8 @@ class abb(DHRobot):
         mesh_transforms = [
             SE3(),
             SE3().Rx(-pi/2),
-            SE3().Rx(pi/2),
-            SE3().Ry(-pi/2),
+            SE3().Rx(pi/2)*SE3(0,0,0),
+            SE3().Ry(-pi/2)*SE3(0,0,0),
             SE3(),
             SE3()
         ]

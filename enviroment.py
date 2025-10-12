@@ -14,12 +14,14 @@ import roboticstoolbox as rtb
 import os
 import time
 from kuka_ropbot import Kuka
+from abb import abb
 # -----------------------------------------------------------------------------------#
 
 if __name__ == "__main__":
+    r = Kuka()
+    # r = abb()
     env = swift.Swift()
     env.launch(realtime=True)
-    r = Kuka()
     r.base = SE3(0.5, 0.5, 0)
     env.add(r)
 

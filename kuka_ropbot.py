@@ -20,11 +20,11 @@ class Kuka(DHRobot):
     def __init__(self):
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
-            DHLink(a=0.35,  alpha=pi/2,    d=0.74,     offset=0),
-            DHLink(a=1.25,  alpha=0,    d=0.05,     offset=0),
-            DHLink(a=0,  alpha=pi/2, d=0, offset=0),
-            DHLink(a=0,      alpha=-pi/2, d=-0.05,     offset=0),
-            DHLink(a=1.1,      alpha=0,    d=0, offset=0)
+            DHLink(a=0.35,  alpha=-pi/2,    d=0.74,     offset=0),
+            DHLink(a=1.25,  alpha=pi,    d=0.05,     offset=0),
+            DHLink(a=0,  alpha=pi/2, d=0, offset=pi/2),
+            DHLink(a=0,      alpha=-pi/2, d=1.1,     offset=0),
+            DHLink(a=0,      alpha=0,    d=0, offset=0)
         ]
         mesh_dir = "kuka150mesh"
         mesh_files = [
@@ -32,16 +32,16 @@ class Kuka(DHRobot):
             "link_1.stl",
             "link_2.stl",
             "link_3.stl",
-            "link_4.stl",
+            "link_4_fixed_origin.stl",
             "link_5.stl"
         ]
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
-            SE3().Rx(-pi/2)*SE3(-0.35,-0.1,0),
+            SE3().Rx(pi/2)*SE3(-0.35,-0.1,0),
             SE3().Rx(-pi/2)*SE3(-1.25,0,0),
-            SE3(),
-            SE3().Ry(-pi/2).Rx(-pi/2),
+            SE3().Rx(-pi/2),
+            SE3()*SE3(-1.1,0,0),
             SE3()
         ]
         sca = 1.0  # Scale factor for the meshes
@@ -65,7 +65,7 @@ class Kuka(DHRobot):
         self.base = SE3(0.5,0,0)
         env.add(self)
 
-        joint = 2  # Change this to test different joints (0 to 5)
+        joint = 5  # Change this to test different joints (0 to 5)
         q_goal = self.q.copy()
         q_goal[joint] = self.q[joint] - 6 * pi  
 

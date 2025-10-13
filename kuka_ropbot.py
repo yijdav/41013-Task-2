@@ -23,7 +23,7 @@ class Kuka(DHRobot):
             DHLink(a=0,      alpha=0, d=0, offset=0),
             DHLink(a=0.35,  alpha=-pi/2,    d=0.74,     offset=0),
             DHLink(a=1.25,  alpha=pi,    d=0.05,     offset=0),
-            DHLink(a=0,  alpha=pi/2, d=0, offset=pi/2),
+            DHLink(a=-0.07,  alpha=pi/2, d=0, offset=pi/2),
             DHLink(a=0,      alpha=-pi/2, d=1.1,     offset=0),
             DHLink(a=0,      alpha=0,    d=0, offset=0)
         ]
@@ -41,9 +41,9 @@ class Kuka(DHRobot):
             SE3(),
             SE3().Rx(pi/2)*SE3(-0.35,-0.1,0),
             SE3().Rx(-pi/2)*SE3(-1.25,0,0),
-            SE3().Rx(-pi/2),
-            SE3()*SE3(-1.1,0,0),
-            SE3()
+            SE3().Ry(-pi/2)*SE3().Rx(pi)*SE3(0,0,0.07),
+            SE3().Ry(-pi/2)*SE3().Rz(-pi/2)*SE3.Rx(pi)*SE3(-0.35,0,0),
+            SE3().Rx(-pi/2)*SE3().Ry(pi/2)*SE3(0,0,0)
         ]
         sca = 1.0  # Scale factor for the meshes
         for i, link in enumerate(links):
@@ -80,14 +80,12 @@ class Kuka(DHRobot):
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    #Kuka().test()
+    Kuka().test()
 
-    env = swift.Swift()
-    env.launch(realtime=True)
-    r = Kuka()
-    r.base = SE3(0, 0, 0)
-    env.add(r)
+    # env = swift.Swift()
+    # env.launch(realtime=True)
+    # r = Kuka()
+    # r.base = SE3(0, 0, 0)
+    # env.add(r)
 
-    env.hold()
-    # is fix?
-    #tried to fix username again
+    # env.hold()

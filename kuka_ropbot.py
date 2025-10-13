@@ -19,12 +19,13 @@ import time
 class Kuka(DHRobot):
     #https://github.com/ros-industrial/kuka_experimental
     def __init__(self):
+        sca = 0.5
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
-            DHLink(a=0.35,  alpha=-pi/2,    d=0.74,     offset=0),
-            DHLink(a=1.25,  alpha=pi,    d=0.05,     offset=0),
-            DHLink(a=-0.07,  alpha=pi/2, d=0, offset=pi/2),
-            DHLink(a=0,      alpha=-pi/2, d=1.1,     offset=0),
+            DHLink(a=0.35*sca,  alpha=-pi/2,    d=0.74*sca,     offset=0),
+            DHLink(a=1.25*sca,  alpha=pi,    d=0.05*sca,     offset=0),
+            DHLink(a=-0.07*sca,  alpha=pi/2, d=0, offset=pi/2),
+            DHLink(a=0,      alpha=-pi/2, d=1.1*sca,     offset=0),
             DHLink(a=0,      alpha=0,    d=0, offset=0)
         ]
         mesh_dir = "kuka150mesh"
@@ -39,13 +40,13 @@ class Kuka(DHRobot):
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
-            SE3().Rx(pi/2)*SE3(-0.35,-0.1,0),
-            SE3().Rx(-pi/2)*SE3(-1.25,0,0),
-            SE3().Ry(-pi/2)*SE3().Rx(pi)*SE3(0,0,0.07),
-            SE3().Ry(-pi/2)*SE3().Rz(-pi/2)*SE3.Rx(pi)*SE3(-0.35,0,0),
+            SE3().Rx(pi/2)*SE3(-0.35*sca,-0.1*sca,0),
+            SE3().Rx(-pi/2)*SE3(-1.25*sca,0,0),
+            SE3().Ry(-pi/2)*SE3().Rx(pi)*SE3(0,0,0.07*sca),
+            SE3().Ry(-pi/2)*SE3().Rz(-pi/2)*SE3.Rx(pi)*SE3(-0.35*sca,0,0),
             SE3().Rx(-pi/2)*SE3().Ry(pi/2)*SE3(0,0,0)
         ]
-        sca = 1.0  # Scale factor for the meshes
+        sca = 0.5  # Scale factor for the meshes
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
             link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i])]
@@ -78,14 +79,34 @@ class Kuka(DHRobot):
             
         env.hold()
 
+    def testAllJoints(self):
+        """
+        Test the class by adding 3d objects into a new Swift window and do a simple movement
+        """
+        env = swift.Swift()
+        env.launch(realtime= True)
+        self.q = self._qtest
+        self.base = SE3(0.5,0.5,0)
+        env.add(self)
+
+        q_goal = [self.q[i]-pi/3 for i in range(self.n)]
+        qtraj = rtb.jtraj(self.q, q_goal, 50).q
+        # fig = self.plot(self.q)
+        for q in qtraj:
+            self.q = q
+            env.step(0.02)
+            # fig.step(0.01)
+        time.sleep(3)
+        env.hold()
+
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    Kuka().test()
+    # Kuka().testAllJoints()
 
-    # env = swift.Swift()
-    # env.launch(realtime=True)
-    # r = Kuka()
-    # r.base = SE3(0, 0, 0)
-    # env.add(r)
+    env = swift.Swift()
+    env.launch(realtime=True)
+    r = Kuka()
+    r.base = SE3(0, 0, 0)
+    env.add(r)
 
-    # env.hold()
+    env.hold()

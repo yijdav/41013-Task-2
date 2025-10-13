@@ -82,7 +82,32 @@ class abb(DHRobot):
             
         env.hold()
 
+    def testAllJoints(self):
+        """
+        Test the class by adding 3d objects into a new Swift window and do a simple movement
+        """
+        env = swift.Swift()
+        env.launch(realtime= True)
+        self.q = self._qtest
+        self.base = SE3(0.5,0.5,0)
+        env.add(self)
+
+        q_goal = [self.q[i]-pi/3 for i in range(self.n)]
+        qtraj = rtb.jtraj(self.q, q_goal, 50).q
+        # fig = self.plot(self.q)
+        for q in qtraj:
+            self.q = q
+            env.step(0.02)
+            # fig.step(0.01)
+        time.sleep(3)
+        env.hold()
+
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
+    env = swift.Swift()
+    env.launch(realtime=True)
     r = abb()
-    r.test()
+    r.base = SE3(0, 0, 0)
+    env.add(r)
+
+    env.hold()

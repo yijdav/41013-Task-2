@@ -13,6 +13,7 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
+#1987
 
 # -----------------------------------------------------------------------------------#
 class Kuka(DHRobot):
@@ -79,12 +80,12 @@ class Kuka(DHRobot):
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    Kuka().test()
+    #Kuka().test()
 
-    # env = swift.Swift()
-    # env.launch(realtime=True)
-    # r = Kuka()
-    # r.base = SE3(0, 0, 0)
-    # env.add(r)
+    env = swift.Swift()
+    env.launch(realtime=True)
+    r = Kuka()
+    r.base = SE3(0, 0, 0)
+    env.add(r)
 
-    # env.hold()
+    env.hold()

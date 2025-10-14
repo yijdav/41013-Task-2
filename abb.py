@@ -47,13 +47,13 @@ class abb(DHRobot):
             SE3().Rx(pi/2)*SE3().Ry(pi/2)*SE3(0,0.08*sca,0)
         ]
 
-        abb_colors = [ # RGBA colors for each link, rip it off chat for a scheme or just google your colors
-            [0.75, 0.75, 0.75, 1.0],  # Even darker gray base (was 0.8)
-            [0.85, 0.45, 0.05, 1.0],    # More pale orange (was 0.8, 0.3, 0.0)
-            [0.8, 0.8, 0.8, 1.0],     # Even darker white/light gray (was 0.85)
-            [0.85, 0.45, 0.05, 1.0],    # More pale orange (was 0.8, 0.3, 0.0)
-            [0.75, 0.75, 0.75, 1.0],  # Even darker gray (was 0.8)
-            [0.3, 0.3, 0.3, 1.0]      # Dark gray end effector (unchanged)
+        abb_colors = [
+            [0.35, 0.35, 0.35, 1.0],   # Darker gray base
+            [0.42, 0.43, 0.45, 1.0],   # Slightly bluish gray
+            [0.48, 0.48, 0.48, 1.0],   # Medium gray
+            [0.38, 0.39, 0.42, 1.0],   # Darker bluish gray
+            [0.45, 0.45, 0.45, 1.0],   # Medium-light gray
+            [0.32, 0.32, 0.32, 1.0]    # Dark gray
         ]
 
         

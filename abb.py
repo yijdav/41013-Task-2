@@ -18,13 +18,14 @@ import time
 class abb(DHRobot):
     #https://github.com/ros-industrial/abb/tree/kinetic-devel/abb_crb15000_support/meshes/crb15000_5_95
     def __init__(self):
+        sca = 1  # Scale factor for the meshes
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
-            DHLink(a=0,  alpha=pi/2,    d=0.266,     offset=0),
-            DHLink(a=0.44,  alpha=-pi,    d=0,     offset=0),
-            DHLink(a=0,  alpha=pi/2 , d=0, offset=pi/2),
-            DHLink(a=0,      alpha=0, d=0.11,     offset=-pi/2),
-            DHLink(a=0.46,      alpha=0,    d=0, offset=0)
+            DHLink(a=0,  alpha=pi/2,    d=0.266*sca,     offset=0),
+            DHLink(a=0.44*sca,  alpha=-pi,    d=0,     offset=pi/2),
+            DHLink(a=0.11*sca,  alpha=-pi/2 , d=0, offset=0),
+            DHLink(a=0,      alpha=pi/2, d=0.47*sca,     offset=0),
+            DHLink(a=0,      alpha=0,    d=0, offset=0)
         ]
         mesh_dir = "abbMeshesUpdated"
         mesh_files = [
@@ -35,21 +36,32 @@ class abb(DHRobot):
             "link_4.stl",
             "link_5.stl"
         ]
+
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
-            SE3().Rx(-pi/2)*SE3(0,0,-0.079),
-            SE3().Rx(pi/2)*SE3(0,-0.08,-0.44),
-            SE3().Ry(-pi/2)*SE3(0,0,0),
-            SE3(),
-            SE3()
+            SE3().Rx(-pi/2)*SE3(0,0,-0.079*sca),
+            SE3().Rx(pi/2)*SE3().Ry(pi/2)*SE3(0,-0.08*sca,-0.44*sca),
+            SE3().Ry(-pi/2)*SE3().Rx(pi)*SE3(0,-0.08*sca,-0.11*sca),
+            SE3().Rz(pi/2)*SE3().Rx(pi/2)*SE3(-0.37*sca,0,0),
+            SE3().Rx(pi/2)*SE3().Ry(pi/2)*SE3(0,0.08*sca,0)
         ]
-        sca = 1.0  # Scale factor for the meshes
+
+        abb_colors = [ # RGBA colors for each link, rip it off chat for a scheme or just google your colors
+            [0.75, 0.75, 0.75, 1.0],  # Even darker gray base (was 0.8)
+            [0.85, 0.45, 0.05, 1.0],    # More pale orange (was 0.8, 0.3, 0.0)
+            [0.8, 0.8, 0.8, 1.0],     # Even darker white/light gray (was 0.85)
+            [0.85, 0.45, 0.05, 1.0],    # More pale orange (was 0.8, 0.3, 0.0)
+            [0.75, 0.75, 0.75, 1.0],  # Even darker gray (was 0.8)
+            [0.3, 0.3, 0.3, 1.0]      # Dark gray end effector (unchanged)
+        ]
+
+        
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
             print(f"Trying to load mesh: {mesh_path}")
             try:
-                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i])]
+                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
                 print(f"Loaded mesh: {mesh_path}")
             except Exception as e:
                 print(f"Failed to load mesh {mesh_path}: {e}")
@@ -70,7 +82,7 @@ class abb(DHRobot):
         self.base = SE3(0,0,0)
         env.add(self)
 
-        joint = 3  # Change this to test different joints (0 to 5)
+        joint = 4  # Change this to test different joints (0 to 5)
         q_goal = self.q.copy()
         q_goal[joint] = self.q[joint] - 6 * pi  
 

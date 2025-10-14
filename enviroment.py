@@ -15,6 +15,7 @@ import os
 import time
 from kuka_ropbot import Kuka
 from abb import abb
+# from AssessmentTwo import myCobot280
 # -----------------------------------------------------------------------------------#
 
 if __name__ == "__main__":
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     r1.base = SE3(0.5, 0.5, 0)
     env.add(r1)
 
-    r2.base = SE3(0, -2.5, 0)
+    r2.base = SE3(0, 0, 0)
     env.add(r2)
 
     r3.base = SE3(0, 2, 0)

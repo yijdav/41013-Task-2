@@ -19,7 +19,7 @@ import time
 class Kuka(DHRobot):
     #https://github.com/ros-industrial/kuka_experimental
     def __init__(self):
-        sca = 0.5
+        sca = 0.3
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
             DHLink(a=0.35*sca,  alpha=-pi/2,    d=0.74*sca,     offset=0),
@@ -40,12 +40,12 @@ class Kuka(DHRobot):
 
 
         yellow_colors = [
-            [0.4, 0.3, 0.3, 1.0],    # Dark orange
-            [0.9, 0.5, 0.1, 1.0],    # Medium dark orange
-            [0.7, 0.3, 0.0, 1.0],    # Very dark orange
-            [0.85, 0.45, 0.05, 1.0], # Burnt orange
-            [0.6, 0.25, 0.0, 1.0],   # Deep dark orange
-            [0.75, 0.35, 0.0, 1.0]   # Rusty orange
+            [0.75, 0.45, 0.35, 1.0],  # Darker pale peachy orange
+            [0.72, 0.42, 0.30, 1.0],  # Darker muted pale orange
+            [0.78, 0.48, 0.38, 1.0],  # Darker light pale orange
+            [0.70, 0.40, 0.28, 1.0],  # Darker deeper pale orange
+            [0.77, 0.47, 0.37, 1.0],  # Darker soft pale orange
+            [0.73, 0.43, 0.32, 1.0]   # Darker medium pale orange
         ]
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
@@ -56,7 +56,6 @@ class Kuka(DHRobot):
             SE3().Ry(-pi/2)*SE3().Rz(-pi/2)*SE3.Rx(pi)*SE3(-0.35*sca,0,0),
             SE3().Rx(-pi/2)*SE3().Ry(pi/2)*SE3(0,0,0)
         ]
-        sca = 0.5  # Scale factor for the meshes
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
             link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i],color=yellow_colors[i])]

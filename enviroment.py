@@ -25,6 +25,9 @@ if __name__ == "__main__":
     env = swift.Swift()
     env.launch(realtime=True)
 
+    sca=0.1
+    workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
+    env.add(workshop)
 
     r1.base = SE3(0.5, 0.5, 0)
     env.add(r1)
@@ -35,11 +38,11 @@ if __name__ == "__main__":
     r3.base = SE3(0, 2, 0)
     r3.add_to_env(env)
 
-
+    #r1.testAllJoints()
 
     # Create trajectories for three robots
     steps = 50
-    q1 = rtb.jtraj(r1.q, [joint + pi/4 for joint in r1.q], steps).q
+    q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
     q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
     q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
 

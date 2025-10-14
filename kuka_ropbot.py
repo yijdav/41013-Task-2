@@ -37,6 +37,16 @@ class Kuka(DHRobot):
             "link_4_fixed_origin.stl",
             "link_5.stl"
         ]
+
+
+        yellow_colors = [
+            [0.4, 0.3, 0.3, 1.0],    # Dark orange
+            [0.9, 0.5, 0.1, 1.0],    # Medium dark orange
+            [0.7, 0.3, 0.0, 1.0],    # Very dark orange
+            [0.85, 0.45, 0.05, 1.0], # Burnt orange
+            [0.6, 0.25, 0.0, 1.0],   # Deep dark orange
+            [0.75, 0.35, 0.0, 1.0]   # Rusty orange
+        ]
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
@@ -49,7 +59,7 @@ class Kuka(DHRobot):
         sca = 0.5  # Scale factor for the meshes
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
-            link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i])]
+            link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i],color=yellow_colors[i])]
         DHRobot.__init__(self, links, name='KUKA')
         # Set a test joint configuration for visualization
         self.q = [0, -pi/2, 0, 0, 0, 0]
@@ -83,12 +93,7 @@ class Kuka(DHRobot):
         """
         Test the class by adding 3d objects into a new Swift window and do a simple movement
         """
-        env = swift.Swift()
-        env.launch(realtime= True)
         self.q = self._qtest
-        self.base = SE3(0.5,0.5,0)
-        env.add(self)
-
         q_goal = [self.q[i]-pi/3 for i in range(self.n)]
         qtraj = rtb.jtraj(self.q, q_goal, 50).q
         # fig = self.plot(self.q)
@@ -101,12 +106,14 @@ class Kuka(DHRobot):
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    # Kuka().testAllJoints()
-
     env = swift.Swift()
     env.launch(realtime=True)
     r = Kuka()
     r.base = SE3(0, 0, 0)
     env.add(r)
+
+    r.testAllJoints()
+
+
 
     env.hold()

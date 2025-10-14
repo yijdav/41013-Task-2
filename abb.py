@@ -20,26 +20,26 @@ class abb(DHRobot):
     def __init__(self):
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
-            DHLink(a=0,  alpha=pi/2,    d=0.26,     offset=0),
-            DHLink(a=0,  alpha=-pi,    d=0,     offset=0),
+            DHLink(a=0,  alpha=pi/2,    d=0.266,     offset=0),
+            DHLink(a=0.44,  alpha=-pi,    d=0,     offset=0),
             DHLink(a=0,  alpha=pi/2 , d=0, offset=pi/2),
             DHLink(a=0,      alpha=0, d=0.11,     offset=-pi/2),
             DHLink(a=0.46,      alpha=0,    d=0, offset=0)
         ]
-        mesh_dir = "abb_robot_mesh"
+        mesh_dir = "abbMeshesUpdated"
         mesh_files = [
-            "base_link (1).stl",
-            "link_1 (1).stl",
-            "link_2 (1).stl",
-            "link_3 (1).stl",
-            "link_4 (1).stl",
-            "link_5 (1).stl"
+            "base_link.stl",
+            "link_1.stl",
+            "link_2.stl",
+            "link_3.stl",
+            "link_4.stl",
+            "link_5.stl"
         ]
         # Example transforms for each mesh (adjust as needed for your STL alignment)
         mesh_transforms = [
             SE3(),
-            SE3().Rx(-pi/2),
-            SE3().Rx(pi/2)*SE3(0,0,0),
+            SE3().Rx(-pi/2)*SE3(0,0,-0.079),
+            SE3().Rx(pi/2)*SE3(0,-0.08,-0.44),
             SE3().Ry(-pi/2)*SE3(0,0,0),
             SE3(),
             SE3()
@@ -104,10 +104,11 @@ class abb(DHRobot):
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    env = swift.Swift()
-    env.launch(realtime=True)
-    r = abb()
-    r.base = SE3(0, 0, 0)
-    env.add(r)
+    abb().test()
+    # env = swift.Swift()
+    # env.launch(realtime=True)
+    # r = abb()
+    # r.base = SE3(0, 0, 0)
+    # env.add(r)
 
-    env.hold()
+    # env.hold()

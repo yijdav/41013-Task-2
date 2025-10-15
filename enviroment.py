@@ -63,4 +63,13 @@ if __name__ == "__main__":
         r3.q = q3[i]
         r4.robot.q = q4[i]
         env.step(0.05)
-    env.hold()
+
+
+
+    r1.add_sliders(env)
+    r2.add_sliders(env)
+
+    while True:
+        env.step(0)
+
+        time.sleep(0.01)

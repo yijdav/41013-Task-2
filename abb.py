@@ -120,7 +120,6 @@ class abb(DHRobot):
         for q in qtraj:
             self.q = q
             env.step(0.02)
-
             
         env.hold()
 
@@ -152,9 +151,9 @@ if __name__ == "__main__":
     r.base = SE3(0, 0, 0)
     env.add(r)
 
-r.add_sliders(env)
+    r.add_sliders(env)
 
-while True:
-    env.step(0)
+    while True:
+        env.step(0)
 
-    time.sleep(0.01)
+        time.sleep(0.01)

@@ -16,6 +16,7 @@ import time
 from kuka_ropbot import Kuka
 from abb import abb
 from Cobot280 import myCobot280
+from AssessmentTwo import myCobot280
 # -----------------------------------------------------------------------------------#
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
 # ABB Robot class
 import numpy as np
-from ir_support import UR3
 from spatialmath import SE3
-from spatialgeometry import Cuboid, Cylinder, Mesh
+from spatialgeometry import Mesh
 from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
 from math import pi
 import swift 
@@ -10,9 +9,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import keyboard
 import spatialmath.base as spb
-import trimesh
 import roboticstoolbox as rtb
-import os
 import time
 from swift import Button
 
@@ -142,16 +139,11 @@ class abb(DHRobot):
         time.sleep(3)
         env.hold()
 
-    def button():
-        button_pressed = {'value': False}
-        # Define the callback
-        def on_button_press(_):
-            button_pressed['value'] = True
-            print("Button pressed")
-        # Create and add the button
-        test_button = swift.Button(cb=on_button_press, desc="Select Robot")
-        env.add(test_button)
-        print("button id:", test_button._id)
+    def partFinding(self, part):
+        """
+        Function to find a part in the environment and move the robot to it
+        """
+        pass
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
@@ -160,14 +152,21 @@ if __name__ == "__main__":
     r = abb()
     r.base = SE3(0, 0, 0)
     env.add(r)
-    
 
+    bolt = Mesh("Environmental_models\ImageToStl.com_M9x12+screw+without+head.stl", scale=[2, 2, 2])
+    env.add(bolt)
+    
     r.add_sliders(env)
 
-    r.button()
-
+    button_pressed = {'value': False}
+    # Define the callback
+    def on_button_press(_):
+        button_pressed['value'] = True
+        print("Button pressed")
+    # Create and add the button
+    test_button = swift.Button(cb=on_button_press, desc="Select Robot")
+    env.add(test_button)
+    
     while True:
         env.step(0)
-
-
         time.sleep(0.01)

@@ -91,7 +91,7 @@ class myCobot280:
         # env.add(base_mesh)
         # env.add(self.robot)        
         #env.add(examplemodel_mesh)
-        env.step(0)
+        #env.step(0)
 
 
         # #USE THIS TO TEST ROBOT IN PYTHON
@@ -276,8 +276,8 @@ class Assignment2:
         # Wrap difference into [-pi, pi]
         dq = (dq + pi) % (2 * pi) - pi
         return q_start + dq
+if __name__ == "__main__":
+    a2 = Assignment2()
 
-a2 = Assignment2()
-
-a2.CreateEnvironment()
-a2.AnimateCobot280()
+    a2.CreateEnvironment()
+    a2.AnimateCobot280()

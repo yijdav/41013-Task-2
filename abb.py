@@ -1,3 +1,4 @@
+# ABB Robot class
 import numpy as np
 from ir_support import UR3
 from spatialmath import SE3
@@ -13,6 +14,7 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
+from swift import Button
 
 # ------------------------------------------- ----------------------------------------#
 class abb(DHRobot):
@@ -66,12 +68,8 @@ class abb(DHRobot):
         
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
-            print(f"Trying to load mesh: {mesh_path}")
-            try:
-                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
-                print(f"Loaded mesh: {mesh_path}")
-            except Exception as e:
-                print(f"Failed to load mesh {mesh_path}: {e}")
+            link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
+
         DHRobot.__init__(self, links, name='KUKA')
         # Set a test joint configuration for visualization
         self.q = [0, -pi/2, 0, 0, 0, 0]
@@ -153,7 +151,21 @@ if __name__ == "__main__":
 
     r.add_sliders(env)
 
+    
+    # Create a flag variable
+    button_pressed = {'value': False}
+    # Define the callback
+    def on_button_press(_):
+        button_pressed['value'] = True
+    # Create and add the button
+    test_button = swift.Button(cb=on_button_press, desc="Select Robot")
+    env.add(test_button)
+
     while True:
         env.step(0)
+
+        if button_pressed['value']:
+            print("Button clicked!")
+            button_pressed['value'] = False  # reset so it can trigger again
 
         time.sleep(0.01)

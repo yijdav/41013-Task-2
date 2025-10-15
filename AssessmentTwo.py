@@ -27,29 +27,19 @@ class myCobot280:
         elbow_dir = "mycobot280_meshes\Elbow.stl"
         wrist_dir = "mycobot280_meshes\Wrist.stl"
         ee_dir = "mycobot280_meshes\End Effector.stl"
-        #0.0634->-0.13 
 
         examplemodel_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\cobot280.stl")
         #CREATE MESHES
         scale = [0.001,0.001,0.001]
-        base_mesh = Mesh(base_dir,pose=SE3.Rx(pi/2),color = (0.6,0.5,0.2,1), scale = scale)
+        self.base_mesh = Mesh(base_dir,pose=SE3.Rx(pi/2),color = (0.6,0.5,0.2,1), scale = scale)
         shoulder_mesh = Mesh(shoulder_dir,pose = SE3(0,-0.15,0)*SE3.Ry(pi/2),color = (0.2,0.2,0.2,1), scale = scale)
         elbow1_mesh = Mesh(elbow_dir,pose = (SE3.Ry(-pi/2)*SE3.Rx(pi/2)*SE3(-0.151,-0.1,0)),color = (0.2,0.2,0.6,1), scale = scale)
         elbow2_mesh = Mesh(elbow_dir,pose = (SE3.Ry(pi/2)*SE3.Rx(pi/2)*SE3(0,0.1,0)),color = (0.2,0.6,0.3,1), scale = scale)
         wrist_mesh = Mesh(wrist_dir,pose=SE3.Rx(pi)*SE3.Ry(pi/2)*SE3(0,-0.0744,0),color = (0.2,0.2,0.2,1), scale = scale)
         ee_mesh = Mesh(ee_dir,pose=SE3.Rx(-pi/2)*SE3(0,-0.1,0),color = (0.2,0.2,0.2,1), scale = scale)
-        #base_mesh = Cuboid(scale=[0.05,0.05,0.13122],color = [1,0,0,1])
-        #shoulder_mesh = Cuboid(scale = [0.1104,0.05,0.05],color=[0,1,0,1])
-        #elbow1_mesh = Cuboid(scale = [0.096,0.05,0.05],pose=SE3(0,0,0),color=[0,0,1,1])
-        #elbow2_mesh = Cuboid(scale = [0.05,0.05,0.0634],pose=SE3(0,0,0),color=[0.2,0.6,0.2,1])
-        #wrist_mesh = Cuboid(scale = [0.05,0.05,0.07505],color=[0.3,0.3,0.3,1])
-        #ee_mesh = Cuboid(scale = [0.03,0.03,0.0456],color=[0.8,0.8,0.8,1])
+
 
         examplemodel_mesh = Mesh(examplemodel_dir,color=[0.7,0.2,0.2,1],scale=scale,pose = SE3(0.8,0,0)*SE3.Rx(pi/2))
-        # verts = np.array(base_mesh.)   # access underlying trimesh object
-        # print("Min:", verts.min(axis=0))
-        # print("Max:", verts.max(axis=0))
-        # print("Center:", verts.mean(axis=0))
 
         # links1 = DHLink(d=0.13122, a=0, alpha=1.5708, offset=0)
         # links2 = DHLink(d=0, a=-0.1104, alpha=0, offset=-1.5708)
@@ -95,22 +85,22 @@ class myCobot280:
         #base_pos = SE3(0.5,1,0.2)
         #THIS SETS THE ROBOTS INITIAL POSITION WITH THE BASE IN CORRECT POS
         offset = SE3(0,0,0.14)
-        base_mesh.T = base_pos*base_mesh.T
+        self.base_mesh.T = base_pos*self.base_mesh.T
         self.robot.base = self.robot.base*base_pos*offset
 
-        env.add(base_mesh)
-        env.add(self.robot)        
+        # env.add(base_mesh)
+        # env.add(self.robot)        
         #env.add(examplemodel_mesh)
         env.step(0)
 
 
-        #USE THIS TO TEST ROBOT IN PYTHON
-        q = [0,0,0,0,0,0]
-        plt.close()
-        fig = self.robot.teach(q, block=False)
-        while not keyboard.is_pressed('enter'):
-            fig.step(0.05)
-        fig.close()
+        # #USE THIS TO TEST ROBOT IN PYTHON
+        # q = [0,0,0,0,0,0]
+        # plt.close()
+        # fig = self.robot.teach(q, block=False)
+        # while not keyboard.is_pressed('enter'):
+        #     fig.step(0.05)
+        # fig.close()
 
 
     def get_robot(self):

@@ -15,7 +15,6 @@ import os
 import time
 from kuka_ropbot import Kuka
 from abb import abb
-# from AssessmentTwo import myCobot280
 # -----------------------------------------------------------------------------------#
 
 if __name__ == "__main__":

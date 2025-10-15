@@ -122,6 +122,7 @@ class abb(DHRobot):
         env.hold()
 
     def testAllJoints(self):
+
         """
         Test the class by adding 3d objects into a new Swift window and do a simple movement
         """
@@ -141,6 +142,17 @@ class abb(DHRobot):
         time.sleep(3)
         env.hold()
 
+    def button():
+        button_pressed = {'value': False}
+        # Define the callback
+        def on_button_press(_):
+            button_pressed['value'] = True
+            print("Button pressed")
+        # Create and add the button
+        test_button = swift.Button(cb=on_button_press, desc="Select Robot")
+        env.add(test_button)
+        print("button id:", test_button._id)
+
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
     env = swift.Swift()
@@ -152,22 +164,10 @@ if __name__ == "__main__":
 
     r.add_sliders(env)
 
-    
-    # Create a flag variable
-    button_pressed = {'value': False}
-    # Define the callback
-    def on_button_press(_):
-        button_pressed['value'] = True
-    # Create and add the button
-    test_button = swift.Button(cb=on_button_press, desc="Select Robot")
-    env.add(test_button)
-    print("button id:", test_button._id)           # use the element’s _id
+    r.button()
 
     while True:
         env.step(0)
 
-        if button_pressed['value']:
-            print("Button clicked!")
-            button_pressed['value'] = False  # reset so it can trigger again
 
         time.sleep(0.01)

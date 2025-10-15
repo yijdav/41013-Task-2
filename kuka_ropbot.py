@@ -13,8 +13,7 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
-#1987
-
+import pygame
 # -----------------------------------------------------------------------------------#
 class Kuka(DHRobot):
     #https://github.com/ros-industrial/kuka_experimental
@@ -132,8 +131,22 @@ class Kuka(DHRobot):
             env.step(0.02)
             # fig.step(0.01)
         time.sleep(3)
-        env.hold()
 
+    # def joystickSetup(self):
+    #     pygame.init()
+    #     pygame.joystick.init()
+
+    #     if pygame.joystick.get_count() == 0:
+    #         print("No joystick detected.")
+    #         exit()
+
+    #     joy = pygame.joystick.Joystick(0)
+    #     joy.init()
+
+    #     print(f"Joystick: {joy.get_name()}")
+    #     print(f" - {joy.get_numbuttons()} buttons")
+    #     print(f" - {joy.get_numaxes()} axes")
+    #     return joy
 
 
 # ---------------------------------------------------------------------------------------#
@@ -145,6 +158,8 @@ if __name__ == "__main__":
     env.add(r)
 
     r.add_sliders(env)
+
+
 
     while True:
         env.step(0)

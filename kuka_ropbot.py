@@ -38,6 +38,14 @@ class Kuka(DHRobot):
             "link_5.stl"
         ]
 
+        # Add joint limits for each link
+        links[0].qlim = [-pi, pi]      # Joint 1: ±180°
+        links[1].qlim = [-pi, pi]      # Joint 2: ±180°
+        links[2].qlim = [-pi, 0]      # Joint 3: ±180°
+        links[3].qlim = [-pi, pi]      # Joint 4: ±180°
+        links[4].qlim = [-pi, pi]      # Joint 5: ±180°
+        links[5].qlim = [-pi, pi]      # Joint 6: ±180°
+    
 
         yellow_colors = [
             [0.75, 0.45, 0.35, 1.0],  # Darker pale peachy orange
@@ -64,6 +72,29 @@ class Kuka(DHRobot):
         self.q = [0, -pi/2, 0, 0, 0, 0]
         self._qtest = [0,-pi/2,0,0,0,0]
 
+    def set_joint(self, j, value):
+        """Set joint value from slider (value in degrees)"""
+        q = list(self.q)  # Create a copy of current joint values
+        q[j] = np.deg2rad(float(value))  # Convert degrees to radians
+        self.q = q
+
+    def add_sliders(self, env):
+        """Add interactive sliders for joint control"""
+        j = 0
+        for link in self.links:
+            if link.isjoint:
+                env.add(
+                    swift.Slider(
+                        lambda x, j=j: self.set_joint(j, x),
+                        min=np.round(np.rad2deg(link.qlim[0]), 2),
+                        max=np.round(np.rad2deg(link.qlim[1]), 2),
+                        step=1,
+                        value=np.round(np.rad2deg(self.q[j]), 2),
+                        desc=" Joint " + str(j),
+                        unit="&#176;",
+                    )
+                )
+                j += 1
 
     # -----------------------------------------------------------------------------------#
     def test(self):
@@ -103,6 +134,8 @@ class Kuka(DHRobot):
         time.sleep(3)
         env.hold()
 
+
+
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
     env = swift.Swift()
@@ -111,6 +144,17 @@ if __name__ == "__main__":
     r.base = SE3(0, 0, 0)
     env.add(r)
 
-    r.testAllJoints()
+# r.add_sliders(env)
 
-    env.hold()
+
+# while True:
+#     # Process the event queue from Swift, this invokes the callback functions
+#     # from the sliders if the slider value was changed
+#     # env.process_events()
+
+#     # Update the environment with the new robot pose
+#     env.step(0)
+
+#     time.sleep(0.01)
+
+

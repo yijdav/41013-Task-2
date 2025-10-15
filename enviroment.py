@@ -15,8 +15,13 @@ import os
 import time
 from kuka_ropbot import Kuka
 from abb import abb
+<<<<<<< HEAD
 #from Cobot280 import myCobot280f
 from AssessmentTwo import myCobot280
+=======
+from Cobot280 import myCobot280
+from AssessmentTwo import Assignment2
+>>>>>>> 8aa59e377f07ba535016048922c6b6a2f4913392
 # -----------------------------------------------------------------------------------#
 
 if __name__ == "__main__":

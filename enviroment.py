@@ -23,7 +23,7 @@ if __name__ == "__main__":
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
-    # r4 = myCobot280() #Jordan gotta fix his robot cause its fucking shit up
+    r4 = myCobot280() #Jordan gotta fix his robot cause its fucking shit up
     env = swift.Swift()
     env.launch(realtime=True)
 
@@ -40,6 +40,9 @@ if __name__ == "__main__":
     r3.base = SE3(0, 2, 0)
     r3.add_to_env(env)
 
+    r4.robot.base = SE3(0, 1, 0)
+    env.add(r4.robot)
+
     #r1.testAllJoints()
 
     # Create trajectories for three robots
@@ -47,10 +50,12 @@ if __name__ == "__main__":
     q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
     q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
     q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
+    q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
 
     for i in range(steps):
         r1.q = q1[i]
         r2.q = q2[i]
         r3.q = q3[i]
+        r4.robot.q = q4[i]
         env.step(0.05)
     env.hold()

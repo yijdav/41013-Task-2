@@ -64,12 +64,28 @@ if __name__ == "__main__":
         r4.robot.q = q4[i]
         env.step(0.05)
 
+    # Create a flag variable
+    button_pressed = {'value': False}
+    def on_button_press(_):
+        button_pressed['value'] = True
+        r1.add_sliders(env)
+        print("Button pressed")
+    # Create and add the button
+    test_button = swift.Button(cb=on_button_press, desc="Adjust Kuka")
+    env.add(test_button)
+
+    # Second button
+    button2_pressed = {'value': False}
+    def on_button2_press(_):
+        print("Button 2 pressed")
+        r2.add_sliders(env)
+        button2_pressed['value'] = True
+    test_button2 = swift.Button(cb=on_button2_press, desc="Adjust ABB")
+    env.add(test_button2)
 
 
-    r1.add_sliders(env)
-    r2.add_sliders(env)
+
 
     while True:
         env.step(0)
-
         time.sleep(0.01)

@@ -148,6 +148,7 @@ if __name__ == "__main__":
     r = abb()
     r.base = SE3(0, 0, 0)
     env.add(r)
+    
 
     r.add_sliders(env)
 
@@ -160,6 +161,7 @@ if __name__ == "__main__":
     # Create and add the button
     test_button = swift.Button(cb=on_button_press, desc="Select Robot")
     env.add(test_button)
+    print("button id:", test_button._id)           # use the element’s _id
 
     while True:
         env.step(0)

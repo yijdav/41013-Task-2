@@ -15,7 +15,7 @@ import os
 import time
 from kuka_ropbot import Kuka
 from abb import abb
-from Cobot280 import myCobot280
+#from Cobot280 import myCobot280
 from AssessmentTwo import myCobot280
 # -----------------------------------------------------------------------------------#
 
@@ -24,7 +24,10 @@ if __name__ == "__main__":
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
-    r4 = myCobot280() #Jordan gotta fix his robot cause its fucking shit up
+    
+    r4pos = SE3(0,1,0)
+    r4 = myCobot280(r4pos) #Jordan gotta fix his robot cause its fucking shit up
+
     env = swift.Swift()
     env.launch(realtime=True)
 
@@ -41,8 +44,9 @@ if __name__ == "__main__":
     r3.base = SE3(0, 2, 0)
     r3.add_to_env(env)
 
-    r4.robot.base = SE3(0, 1, 0)
+
     env.add(r4.robot)
+    env.add(r4.base_mesh)
 
     #r1.testAllJoints()
 

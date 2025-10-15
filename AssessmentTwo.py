@@ -122,16 +122,19 @@ class Assignment2:
         cobotHolder = myCobot280(initial_pos)
 
         self.mycobot280 = cobotHolder.get_robot()
+        env.add(self.mycobot280)
+        env.add(cobotHolder.base_mesh)
 
 
         env.step(0)
         
         
-    def rmrc_draw_square(self, robot, env, origin=SE3(0.3,0,0)*SE3.Rz(-pi), side_length=0.1, steps_per_side=50, dt=0.1):
+    def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt):
         """
         Draw a square using RMRC with full 6x6 Jacobians.
         Ensures all joint values are Python floats to avoid Swift JSON errors.
         """
+        
         # 1️⃣ Define square corners
         corners = [
             origin,
@@ -187,17 +190,28 @@ class Assignment2:
                 # 🔟 Visualize pen
                 penDot = Sphere(radius=0.01, color=[1.0, 0.0, 0.0, 1.0])
                 fk = robot.fkine(robot.q)
-                penDot.T = SE3(fk.t.flatten().astype(float))  # Ensure float
+                _offset = SE3(0,0,-0.055)
+                penDot.T = SE3(fk.t.flatten().astype(float)) *_offset # Ensure float
                 env.add(penDot)
                 env.step(float(dt))  # Ensure dt is standard float
 
 
 
     def AnimateCobot280(self):
-        origin = SE3(0.2,-0.1,0.1)
+        
         sideLength = 0.2
+        steps_per_side=30
+        dt=0.05
+        laps = 5
         # Call the RMRC function
-        self.rmrc_draw_square(self.mycobot280, env, origin, sideLength, steps_per_side=80, dt=0.05)
+        for i in range(laps):
+            origin = SE3(0.3,0.2,0.07) *SE3(0,0,i*0.01)* SE3.Rx(-pi)
+            self.rmrc_draw_square(self.mycobot280, env, origin, sideLength, steps_per_side, dt)
+        
+
+        initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        self.mycobot280.q = initialq
+        env.step(0.05)
         env.hold()
 
         #ARBITRARY TRAJ TO TEST ANIMATION
@@ -223,17 +237,17 @@ class Assignment2:
         #     env.step(0.05)
 
         #DRAW A SQUARE
-        sideLength = 0.3
-        origin = SE3(0.3,0,0)*SE3.Rz(pi)#self.mycobot280.fkine(self.mycobot280.q)
-        initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        self.mycobot280.q = initialq
-        squarePoses = [
-            origin * SE3(0,0,0),
-            origin * SE3(sideLength,0,0),
-            origin * SE3(sideLength,sideLength,0),
-            origin * SE3(0,sideLength,0),
-            origin * SE3(0,0,0)
-        ]
+        # sideLength = 0.3
+        # origin = SE3(0.3,0,0)*SE3.Rz(pi)#self.mycobot280.fkine(self.mycobot280.q)
+        # initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        # self.mycobot280.q = initialq
+        # squarePoses = [
+        #     origin * SE3(0,0,0),
+        #     origin * SE3(sideLength,0,0),
+        #     origin * SE3(sideLength,sideLength,0),
+        #     origin * SE3(0,sideLength,0),
+        #     origin * SE3(0,0,0)
+        # ]
         # for i in np.arange(0,len(squarePoses)+1):
         #     interpspots = [SE3(trinterp(squarePoses[i], squarePoses[i+1], s)) for s in np.linspace(0, 1, 50)]
         #     for i in np.arange(0,len(interpspots)+1):

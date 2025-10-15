@@ -15,7 +15,7 @@ import os
 import time
 from kuka_ropbot import Kuka
 from abb import abb
-#from Cobot280 import myCobot280
+#from Cobot280 import myCobot280f
 from AssessmentTwo import myCobot280
 # -----------------------------------------------------------------------------------#
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
-    
+
     r4pos = SE3(0,1,0)
     r4 = myCobot280(r4pos) #Jordan gotta fix his robot cause its fucking shit up
 

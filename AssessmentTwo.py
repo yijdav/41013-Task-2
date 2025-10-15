@@ -31,7 +31,7 @@ class myCobot280:
         examplemodel_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\cobot280.stl")
         #CREATE MESHES
         scale = [0.001,0.001,0.001]
-        base_mesh = Mesh(base_dir,pose=SE3.Rx(pi/2),color = (0.6,0.5,0.2,1), scale = scale)
+        self.base_mesh = Mesh(base_dir,pose=SE3.Rx(pi/2),color = (0.6,0.5,0.2,1), scale = scale)
         shoulder_mesh = Mesh(shoulder_dir,pose = SE3(0,-0.15,0)*SE3.Ry(pi/2),color = (0.2,0.2,0.2,1), scale = scale)
         elbow1_mesh = Mesh(elbow_dir,pose = (SE3.Ry(-pi/2)*SE3.Rx(pi/2)*SE3(-0.151,-0.1,0)),color = (0.2,0.2,0.6,1), scale = scale)
         elbow2_mesh = Mesh(elbow_dir,pose = (SE3.Ry(pi/2)*SE3.Rx(pi/2)*SE3(0,0.1,0)),color = (0.2,0.6,0.3,1), scale = scale)
@@ -85,10 +85,10 @@ class myCobot280:
         #base_pos = SE3(0.5,1,0.2)
         #THIS SETS THE ROBOTS INITIAL POSITION WITH THE BASE IN CORRECT POS
         offset = SE3(0,0,0.14)
-        base_mesh.T = base_pos*base_mesh.T
+        self.base_mesh.T = base_pos*self.base_mesh.T
         self.robot.base = self.robot.base*base_pos*offset
 
-        env.add(base_mesh)
+        env.add(self.base_mesh)
         env.add(self.robot)        
         #env.add(examplemodel_mesh)
         #env.step(0)

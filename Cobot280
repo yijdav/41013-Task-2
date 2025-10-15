@@ -13,9 +13,9 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
-env = None
+
 class myCobot280:
-    def __init__(self,base_pos):
+    def __init__(self):
         #SET DH PARAMETERS FOR LINKS
         links = [
         DHLink(d=0.15, a=0, alpha=1.5708, offset=0),
@@ -55,7 +55,8 @@ class myCobot280:
 if __name__ == "__main__":
     env = swift.Swift()
     env.launch(realtime=True)
-    r = myCobot280(SE3(0, 0, 0))
+    r = myCobot280()
+    r.robot.base = SE3(0,0,0)
     env.add(r.robot)
     env.hold()
 

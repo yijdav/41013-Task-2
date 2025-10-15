@@ -88,8 +88,8 @@ class myCobot280:
         self.base_mesh.T = base_pos*self.base_mesh.T
         self.robot.base = self.robot.base*base_pos*offset
 
-        # env.add(base_mesh)
-        # env.add(self.robot)        
+        env.add(self.base_mesh)
+        env.add(self.robot)        
         #env.add(examplemodel_mesh)
         #env.step(0)
 

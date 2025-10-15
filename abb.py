@@ -56,6 +56,13 @@ class abb(DHRobot):
             [0.32, 0.32, 0.32, 1.0]    # Dark gray
         ]
 
+        # Add joint limits for each link
+        links[0].qlim = [-pi, pi]      # Joint 1: ±180°
+        links[1].qlim = [-pi, pi]      # Joint 2: ±180°
+        links[2].qlim = [-pi/2, pi/2]      # Joint 3: ±90°
+        links[3].qlim = [-pi, pi]      # Joint 4: ±180°
+        links[4].qlim = [-pi, pi]      # Joint 5: ±180°
+        links[5].qlim = [-pi, pi]      # Joint 6: ±180°
         
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
@@ -70,6 +77,29 @@ class abb(DHRobot):
         self.q = [0, -pi/2, 0, 0, 0, 0]
         self._qtest = [0,-pi/2,0,0,0,0]
 
+    def set_joint(self, j, value):
+        """Set joint value from slider (value in degrees)"""
+        q = list(self.q)  # Create a copy of current joint values
+        q[j] = np.deg2rad(float(value))  # Convert degrees to radians
+        self.q = q
+
+    def add_sliders(self, env):
+        """Add interactive sliders for joint control"""
+        j = 0
+        for link in self.links:
+            if link.isjoint:
+                env.add(
+                    swift.Slider(
+                        lambda x, j=j: self.set_joint(j, x),
+                        min=np.round(np.rad2deg(link.qlim[0]), 2),
+                        max=np.round(np.rad2deg(link.qlim[1]), 2),
+                        step=1,
+                        value=np.round(np.rad2deg(self.q[j]), 2),
+                        desc=" Joint " + str(j),
+                        unit="&#176;",
+                    )
+                )
+                j += 1
 
     # -----------------------------------------------------------------------------------#
     def test(self):
@@ -116,11 +146,15 @@ class abb(DHRobot):
 
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    abb().test()
-    # env = swift.Swift()
-    # env.launch(realtime=True)
-    # r = abb()
-    # r.base = SE3(0, 0, 0)
-    # env.add(r)
+    env = swift.Swift()
+    env.launch(realtime=True)
+    r = abb()
+    r.base = SE3(0, 0, 0)
+    env.add(r)
 
-    # env.hold()
+r.add_sliders(env)
+
+while True:
+    env.step(0)
+
+    time.sleep(0.01)

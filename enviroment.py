@@ -20,6 +20,93 @@ from AssessmentTwo import myCobot280
 import pygame
 # -----------------------------------------------------------------------------------#
 
+    # -----------------------------------------------------
+    # ---------------- Robot joint sliders ----------------
+    # -----------------------------------------------------
+# ---------- Control buttons: also enable joystick on selection ----------
+def select_kuka(_=None): 
+    active["robot"] = r1
+    joystick_enabled["v"] = True
+    print("Controlling: Kuka")
+def select_abb(_=None):
+    active["robot"] = r2
+    joystick_enabled["v"] = True
+    print("Controlling: ABB")
+def select_ur3(_=None):
+    active["robot"] = r3
+    joystick_enabled["v"] = True
+    print("Controlling: UR3")
+def select_cobot(_=None):
+    active["robot"] = r4.robot
+    joystick_enabled["v"] = True
+    print("Controlling: myCobot280")
+
+def _set_joint_deg(robot, j, deg): # fetches the robot and sets the jth joint to deg degrees
+    q = list(robot.q)
+    qmin, qmax = -pi, pi
+    q[j] = np.clip(np.deg2rad(float(deg)), qmin, qmax)
+    robot.q = q
+
+def slider_cb(value_deg, joint_index): # callback for sliders, sets the joint of the active robot
+    rob = active["robot"]
+    if joint_index >= getattr(rob, "n", len(getattr(rob, "links", []))):
+        return
+    _set_joint_deg(rob, joint_index, value_deg)
+    env.step(0)
+
+def robot_joint_control():
+    # Control buttons for active robot selection
+    env.add(swift.Button(desc="Control Kuka", cb=select_kuka))
+    env.add(swift.Button(desc="Control ABB", cb=select_abb))
+    env.add(swift.Button(desc="Control UR3", cb=select_ur3))
+    env.add(swift.Button(desc="Control myCobot", cb=select_cobot))
+
+    shared_sliders = []
+    for i in range(6):
+        init_deg = 0.0
+        try:
+            init_deg = float(np.rad2deg(active["robot"].q[i]))
+        except Exception:
+            pass
+        s = swift.Slider(
+            cb=lambda v, j=i: slider_cb(v, j),
+            min=-180, max=180, step=1,
+            value=init_deg,
+            desc=f"Joint {i+1} (Active Robot)",
+            unit="&#176;",
+        )
+        env.add(s)
+        shared_sliders.append(s)
+    return shared_sliders
+
+
+    # ---------------------------------------------------------------------
+    # ---------------- controller manipulation of end effector ------------
+    # ---------------------------------------------------------------------
+
+def _clamp_to_qlim(robot, q):
+    qq = np.array(q, dtype=float)
+    n = len(qq)
+    for j in range(n):
+        qmin, qmax = -pi, pi
+        qq[j] = np.clip(qq[j], qmin, qmax)
+    return qq
+
+def _dls_step(robot, dx, lam_=0.1, dq_limit=2.0):
+    if not hasattr(robot, "jacob0"):
+        return np.zeros(getattr(robot, "n", 6))
+    J = robot.jacob0(robot.q)  # 6xN
+    JTJ = J.T @ J
+    N = JTJ.shape[0]
+    dq = np.linalg.solve(JTJ + (lam_**2) * np.eye(N), J.T @ dx)
+    return np.clip(dq, -dq_limit, dq_limit)
+
+def _joy_axis(v, th):
+    return 0.0 if abs(v) < th else v
+
+
+
+
 if __name__ == "__main__":
     env = swift.Swift()
     env.launch(realtime=True)
@@ -56,10 +143,14 @@ if __name__ == "__main__":
         r4.robot.q = q4[i]
         env.step(0.05)
 
-    # -----------------------------------------------------
-    # ---------------- Robot joint sliders ----------------
-    # -----------------------------------------------------
+
     active = {"robot": r1}  # set Kuka as the default active robot
+
+
+
+    
+    robot_joint_control()
+    """Add flag check to only run the sliders once the robots have completed their tasks"""
 
     # --- Joystick setup (disabled until a robot is selected) ---
     pygame.init()
@@ -83,107 +174,9 @@ if __name__ == "__main__":
     deadzone = 0.1
     button_gain = 0.5
 
-    def _get_qlim(robot, j):
-        lim = getattr(robot, "qlim", None)
-        if lim is None:
-            # try per-link
-            try:
-                L = robot.links[j]
-                if getattr(L, "qlim", None) is not None:
-                    return float(L.qlim[0]), float(L.qlim[1])
-            except Exception:
-                pass
-            return -pi, pi
-        try:
-            return float(lim[j, 0]), float(lim[j, 1])
-        except Exception:
-            try:
-                return float(lim[j][0]), float(lim[j][1])
-            except Exception:
-                return -pi, pi
 
-    def _clamp_to_qlim(robot, q):
-        qq = np.array(q, dtype=float)
-        n = len(qq)
-        for j in range(n):
-            qmin, qmax = -pi, pi
-            qq[j] = np.clip(qq[j], qmin, qmax)
-        return qq
 
-    def _dls_step(robot, dx, lam_=0.1, dq_limit=2.0):
-        if not hasattr(robot, "jacob0"):
-            return np.zeros(getattr(robot, "n", 6))
-        J = robot.jacob0(robot.q)  # 6xN
-        JTJ = J.T @ J
-        N = JTJ.shape[0]
-        dq = np.linalg.solve(JTJ + (lam_**2) * np.eye(N), J.T @ dx)
-        return np.clip(dq, -dq_limit, dq_limit)
 
-    def _joy_axis(v, th):
-        return 0.0 if abs(v) < th else v
-
-    # ---------- Control buttons: also enable joystick on selection ----------
-    def select_kuka(_=None): 
-        active["robot"] = r1
-        joystick_enabled["v"] = True
-        print("Controlling: Kuka")
-    def select_abb(_=None):
-        active["robot"] = r2
-        joystick_enabled["v"] = True
-        print("Controlling: ABB")
-    def select_ur3(_=None):
-        active["robot"] = r3
-        joystick_enabled["v"] = True
-        print("Controlling: UR3")
-    def select_cobot(_=None):
-        active["robot"] = r4.robot
-        joystick_enabled["v"] = True
-        print("Controlling: myCobot280")
-
-    def _set_joint_deg(robot, j, deg): # fetches the robot and sets the jth joint to deg degrees
-        q = list(robot.q)
-        qmin, qmax = -pi, pi
-        q[j] = np.clip(np.deg2rad(float(deg)), qmin, qmax)
-        robot.q = q
-
-    def slider_cb(value_deg, joint_index): # callback for sliders, sets the joint of the active robot
-        rob = active["robot"]
-        if joint_index >= getattr(rob, "n", len(getattr(rob, "links", []))):
-            return
-        _set_joint_deg(rob, joint_index, value_deg)
-        env.step(0)
-
-    def robot_joint_control():
-        # Control buttons for active robot selection
-        env.add(swift.Button(desc="Control Kuka", cb=select_kuka))
-        env.add(swift.Button(desc="Control ABB", cb=select_abb))
-        env.add(swift.Button(desc="Control UR3", cb=select_ur3))
-        env.add(swift.Button(desc="Control myCobot", cb=select_cobot))
-
-        shared_sliders = []
-        for i in range(6):
-            init_deg = 0.0
-            try:
-                init_deg = float(np.rad2deg(active["robot"].q[i]))
-            except Exception:
-                pass
-            s = swift.Slider(
-                cb=lambda v, j=i: slider_cb(v, j),
-                min=-180, max=180, step=1,
-                value=init_deg,
-                desc=f"Joint {i+1} (Active Robot)",
-                unit="&#176;",
-            )
-            env.add(s)
-            shared_sliders.append(s)
-        return shared_sliders
-    
-    robot_joint_control()
-    """Add flag check to only run the sliders once the robots have completed their tasks"""
-
-    # ---------------------------------------------------------------------
-    # ---------------- controller manipulation of end effector ------------
-    # ---------------------------------------------------------------------
 
     t_prev = time.time()
     while True:

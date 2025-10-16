@@ -106,7 +106,7 @@ if __name__ == "__main__":
         qq = np.array(q, dtype=float)
         n = len(qq)
         for j in range(n):
-            qmin, qmax = _get_qlim(robot, j)
+            qmin, qmax = -pi, pi
             qq[j] = np.clip(qq[j], qmin, qmax)
         return qq
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     def _set_joint_deg(robot, j, deg): # fetches the robot and sets the jth joint to deg degrees
         q = list(robot.q)
-        qmin, qmax = _get_qlim(robot, j)
+        qmin, qmax = -pi, pi
         q[j] = np.clip(np.deg2rad(float(deg)), qmin, qmax)
         robot.q = q
 

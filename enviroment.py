@@ -16,7 +16,7 @@ import time
 from kuka_ropbot import Kuka
 from abb import abb
 #from Cobot280 import myCobot280
-from AssessmentTwo import myCobot280
+from AssessmentTwo import myCobot280, Assignment2
 import pygame
 # -----------------------------------------------------------------------------------#
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     r2 = abb()
     r3 = UR3()
     r4pos = SE3(0,1,0)
-    r4 = myCobot280(r4pos) 
+    r4 = myCobot280(SE3(0,1,0)) 
     r1.base = SE3(0.5, 0.5, 0)
     env.add(r1)
     r2.base = SE3(0, 0, 0)
@@ -134,23 +134,22 @@ if __name__ == "__main__":
     q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
     q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
     q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
-    q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
+    # q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
 
     for i in range(steps):
         r1.q = q1[i]
         r2.q = q2[i]
         r3.q = q3[i]
-        r4.robot.q = q4[i]
+        # r4.robot.q = q4[i]
         env.step(0.05)
 
 
+    # Assignment2().AnimateCobot280()
+
     active = {"robot": r1}  # set Kuka as the default active robot
 
-
-
-    
-    robot_joint_control()
-    """Add flag check to only run the sliders once the robots have completed their tasks"""
+    # builds the robot control buttons and sliders
+    robot_joint_control() #IMPORTANT DONT DELETE, I keep deleting this by accident lol
 
     # --- Joystick setup (disabled until a robot is selected) ---
     pygame.init()
@@ -161,7 +160,7 @@ if __name__ == "__main__":
         joy.init()
         print(f"Joystick: {joy.get_name()} | Buttons={joy.get_numbuttons()} Axes={joy.get_numaxes()}")
     else:
-        print("No joystick")
+        print("No joystick connected")
 
     joystick_enabled = {"v": False}  # becomes True when a Control button is pressed
 
@@ -174,18 +173,8 @@ if __name__ == "__main__":
     deadzone = 0.1
     button_gain = 0.5
 
-
-
-
-
-    t_prev = time.time()
-    while True:
-        # Joystick-driven end-effector velocity control of the active robot
-        now = time.time()
-        dt_loop = now - t_prev
-        t_prev = now
-
-        if joystick_enabled["v"]:
+    def joystickTick():
+        if joystick_enabled["v"] and pygame.joystick.get_count() > 0:
             pygame.event.pump()
             axes = [ _joy_axis(joy.get_axis(i), deadzone) for i in range(joy.get_numaxes()) ]
             buttons = [ joy.get_button(i) for i in range(joy.get_numbuttons()) ]
@@ -207,5 +196,9 @@ if __name__ == "__main__":
             q_new = _clamp_to_qlim(rob, q_new)
             rob.q = q_new
 
+
+    while True:
+
+        joystickTick()
         env.step(0)
         time.sleep(0.01)

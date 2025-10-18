@@ -100,9 +100,8 @@ class Assignment2:
         self.mycobot280 = cobotHolder.robot
         env.add(self.mycobot280)
         env.add(cobotHolder.base_mesh)
-        box_dir = "Box.stl"
-        box_mesh = Mesh(box_dir, pose = SE3(1,0,0), scale = (1,1,1), color = (0.7,0.2,0.2))
-        env.add(box_mesh)
+        
+        
 
         env.step(0)
         
@@ -165,10 +164,12 @@ class Assignment2:
                 #Draw line using pen
                 penDot = Sphere(radius=0.01, color=[1.0, 0.0, 0.0, 1.0])
                 fk = robot.fkine(robot.q)
-                _offset = SE3(0,0,-0.055)
+                _offset = SE3(0,0,-0.06)
                 penDot.T = SE3(fk.t.flatten().astype(float)) *_offset
                 env.add(penDot)
+                self.penDots.append(penDot)
                 env.step(float(dt))
+
 
 
 
@@ -177,12 +178,17 @@ class Assignment2:
         sideLength = 0.2
         steps_per_side=30
         dt=0.05
-        laps = 5
+        laps = 3
+        origin = SE3(0.3,0.2,0.07)* SE3.Rx(-pi)
+        box_dir = "Box.stl"
+        box_mesh = Mesh(box_dir, pose = SE3(0.3,0.2,0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        self.penDots = []
         # Call the RMRC function where laps is how tall to make the box
-        for i in range(laps):
-            origin = SE3(0.3,0.2,0.07) *SE3(0,0,i*0.01)* SE3.Rx(-pi)
-            self.rmrc_draw_square(self.mycobot280, env, origin, sideLength, steps_per_side, dt)
-        
+        for i in range(laps):        
+            self.rmrc_draw_square(self.mycobot280, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
+        for dot in self.penDots:
+            env.remove(dot)
+        env.add(box_mesh)
 
         #initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
         #self.mycobot280.q = initialq

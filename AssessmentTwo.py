@@ -100,7 +100,7 @@ class Assignment2:
         self.mycobot280 = cobotHolder.robot
         env.add(self.mycobot280)
         env.add(cobotHolder.base_mesh)
-        box_dir = "mycobot280_meshes\Box.stl"
+        box_dir = "Box.stl"
         box_mesh = Mesh(box_dir, pose = SE3(1,0,0), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box_mesh)
 

@@ -130,12 +130,8 @@ class Assignment2:
         
         
     def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt):
-        """
-        Draw a square using RMRC with full 6x6 Jacobians.
-        Ensures all joint values are Python floats to avoid Swift JSON errors.
-        """
         
-        # 1️⃣ Define square corners
+        #Defines the corners of the square, using origin as a starting point
         corners = [
             origin,
             origin * SE3(side_length, 0, 0),
@@ -144,56 +140,57 @@ class Assignment2:
             origin  # return to start
         ]
 
-        # 2️⃣ Compute initial joint configuration via IK
+        #Compute initial joint configuration using IK
         q = robot.ikine_LM(corners[0], q0=np.array(robot.q, dtype=float), mask=[1,1,1,1,1,1], joint_limits=True).q
         robot.q = np.array(q, dtype=float)  # Ensure standard Python float array
 
-        # 3️⃣ Loop over edges
+        #Repeat section for each edge of the square
         for i in range(len(corners)-1):
             start_pose = corners[i]
             end_pose = corners[i+1]
 
             for s in np.linspace(0, 1, steps_per_side):
-                # 4️⃣ Interpolate in Cartesian space
+                #Interpolate in Cartesian space
                 desired_pose = start_pose.interp(end_pose, s)
 
-                # 5️⃣ Compute Jacobian
+                #Compute Jacobian
                 J = robot.jacob0(robot.q)
 
-                # 6️⃣ Translation error
+                #Computes xdot, that is the change in translation during a timestep dt
                 current_pose = robot.fkine(robot.q)
                 xdot = (desired_pose.t - current_pose.t) / dt
 
-                # 7️⃣ Rotation error
+                #Computes the rotational component of xdot using the skew symmetric matrix over dt
                 R_current = current_pose.R
                 R_desired = desired_pose.R
-                R_err = R_desired @ R_current.T
-                ang_err = np.array([
-                    R_err[2,1]-R_err[1,2],
-                    R_err[0,2]-R_err[2,0],
-                    R_err[1,0]-R_err[0,1]
+                R_diff = R_desired @ R_current.T
+                ang_diff = np.array([
+                    R_diff[2,1]-R_diff[1,2],
+                    R_diff[0,2]-R_diff[2,0],
+                    R_diff[1,0]-R_diff[0,1]
                 ]) / 2 / dt
 
-                xdot_full = np.hstack((xdot.astype(float), ang_err.astype(float)))
+                #Combines rotational and translational components of xdot
+                xdot_full = np.hstack((xdot.astype(float), ang_diff.astype(float)))
 
-                # 8️⃣ Compute joint velocities
-                λ = 0.1  # damping factor, tweak between 0.01 and 0.5
+                #Compute joint velocities
+                _lambda = 0.1  #damping factor, tweak between 0.01 and 0.5
                 JT = J.T
-                qdot = JT @ np.linalg.inv(J @ JT + (λ**2) * np.eye(6)) @ xdot_full
+                qdot = JT @ np.linalg.inv(J @ JT + (_lambda**2) * np.eye(6)) @ xdot_full
 
 
 
-                # 9️⃣ Update joint positions (convert to standard float)
+                #Update joint positions
                 robot.q = (robot.q + qdot * dt).astype(float)
 
 
-                # 🔟 Visualize pen
+                #Draw line using pen
                 penDot = Sphere(radius=0.01, color=[1.0, 0.0, 0.0, 1.0])
                 fk = robot.fkine(robot.q)
                 _offset = SE3(0,0,-0.055)
-                penDot.T = SE3(fk.t.flatten().astype(float)) *_offset # Ensure float
+                penDot.T = SE3(fk.t.flatten().astype(float)) *_offset
                 env.add(penDot)
-                env.step(float(dt))  # Ensure dt is standard float
+                env.step(float(dt))
 
 
 

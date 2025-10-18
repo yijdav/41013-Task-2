@@ -56,8 +56,8 @@ class myCobot280:
         links[4].geometry = [ee_mesh]
         self.robot = DHRobot(links)
         
-        #self.robot.links[1].qlim = [-1.745,1.745]
-        #self.robot.links[2].qlim = [-2.7,2.7]
+        self.robot.links[1].qlim = [-1.745,1.745]
+        self.robot.links[2].qlim = [-2.7,2.7]
         self.robot.links[4].qlim = [-3/2*pi,-pi/2]
 
         #ADD CYLINDERS TO REPRESENT AXES
@@ -200,62 +200,23 @@ class Assignment2:
         steps_per_side=30
         dt=0.05
         laps = 5
-        # Call the RMRC function
+        # Call the RMRC function where laps is how tall to make the box
         for i in range(laps):
             origin = SE3(0.3,0.2,0.07) *SE3(0,0,i*0.01)* SE3.Rx(-pi)
             self.rmrc_draw_square(self.mycobot280, env, origin, sideLength, steps_per_side, dt)
         
 
-        initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        self.mycobot280.q = initialq
-        env.step(0.05)
-        env.hold()
-
-        #ARBITRARY TRAJ TO TEST ANIMATION
-        # traj = jtraj([0,0,0,0,0,0],[1,1,1,1,1,1],50)
-        # for q in traj.q:
-        #     self.mycobot280.q = q
-        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
-        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
-        #     env.add(penDot)
-        #     env.step(0.05)
-        # traj = jtraj(self.mycobot280.q,[-1,-1,-1,-1,-1,-1],50)
-        # for q in traj.q:
-        #     self.mycobot280.q = q
-        #     penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
-        #     penDot.T = self.mycobot280.fkine(self.mycobot280.q)
-        #     env.add(penDot)
-        #     env.step(0.05)
+        #initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
+        #self.mycobot280.q = initialq
+        #env.step(0.05)
+        
 
 
-        # traj = jtraj([0,0,0,0,self.mycobot280.qlim[0,4],0],[0,0,0,0,self.mycobot280.qlim[1,4],0],30)
+
+        # traj = jtraj([0,self.mycobot280.qlim[0,1],0,0,0,0],[0,self.mycobot280.qlim[1,1],0,0,0,0],30)
         # for q in traj.q:
         #     self.mycobot280.q = q
         #     env.step(0.05)
-
-        #DRAW A SQUARE
-        # sideLength = 0.3
-        # origin = SE3(0.3,0,0)*SE3.Rz(pi)#self.mycobot280.fkine(self.mycobot280.q)
-        # initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        # self.mycobot280.q = initialq
-        # squarePoses = [
-        #     origin * SE3(0,0,0),
-        #     origin * SE3(sideLength,0,0),
-        #     origin * SE3(sideLength,sideLength,0),
-        #     origin * SE3(0,sideLength,0),
-        #     origin * SE3(0,0,0)
-        # ]
-        # for i in np.arange(0,len(squarePoses)+1):
-        #     interpspots = [SE3(trinterp(squarePoses[i], squarePoses[i+1], s)) for s in np.linspace(0, 1, 50)]
-        #     for i in np.arange(0,len(interpspots)+1):
-        #         self.mycobot280.q = self.mycobot280.ikine_LM(squarePoses[i],q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
-        #         penDot = Sphere(radius=0.025, color=[1.0, 0.0, 0.0, 1.0])
-        #         penDot.T = self.mycobot280.fkine(self.mycobot280.q)
-        #         env.add(penDot)
-            
-
-        # T1 = SE3(0.2, -0.1, 0)
-        # T2 = SE3(0.2, 0.1, 0)
 
         # steps = 30
         # poses = [SE3(trinterp(T1.A, T2.A, s)) for s in np.linspace(0, 1, steps)]
@@ -277,6 +238,7 @@ class Assignment2:
             #     self.mycobot280.q = q
                 
             #     env.step(0.05)
+        env.hold()
 
 
     #THIS FUNCTION NORMALISED DISTANCES SO INSTEAD OF GOING LONG WAY JOINTS GO SHORTWAY IN JTRAJ        

@@ -28,7 +28,6 @@ class myCobot280:
         wrist_dir = "mycobot280_meshes\Wrist.stl"
         ee_dir = "mycobot280_meshes\End Effector.stl"
 
-        examplemodel_dir = (r"c:\Python Scripts\AssessmentTwo\mycobot280meshes\cobot280.stl")
         #CREATE MESHES
         scale = [0.001,0.001,0.001]
         self.base_mesh = Mesh(base_dir,pose=SE3.Rx(pi/2),color = (0.6,0.5,0.2,1), scale = scale)
@@ -38,17 +37,15 @@ class myCobot280:
         wrist_mesh = Mesh(wrist_dir,pose=SE3.Rx(pi)*SE3.Ry(pi/2)*SE3(0,-0.0744,0),color = (0.2,0.2,0.2,1), scale = scale)
         ee_mesh = Mesh(ee_dir,pose=SE3.Rx(-pi/2)*SE3(0,-0.1,0),color = (0.2,0.2,0.2,1), scale = scale)
 
-
-        examplemodel_mesh = Mesh(examplemodel_dir,color=[0.7,0.2,0.2,1],scale=scale,pose = SE3(0.8,0,0)*SE3.Rx(pi/2))
-
+        
         # links1 = DHLink(d=0.13122, a=0, alpha=1.5708, offset=0)
         # links2 = DHLink(d=0, a=-0.1104, alpha=0, offset=-1.5708)
         # links3 = DHLink(d=0, a=-0.96, alpha=0, offset=0)
         # links4 = DHLink(d=0.634, a=0, alpha=1.5708, offset=-1.5708)
         # links5 = DHLink(d=0.7505, a=0, alpha=-1.5708, offset=1.5708)
         # links6 = DHLink(d=0.456, a=0, alpha=0, offset=0)
+
         #ATTACH MESHES TO LINKS
-        #links[0].geometry = [base_mesh]
         links[0].geometry = [shoulder_mesh]
         links[1].geometry = [elbow1_mesh]
         links[2].geometry = [elbow2_mesh]
@@ -82,32 +79,11 @@ class myCobot280:
         # env.add(drawaxis6)
 
 
-        #base_pos = SE3(0.5,1,0.2)
+
         #THIS SETS THE ROBOTS INITIAL POSITION WITH THE BASE IN CORRECT POS
         offset = SE3(0,0,0.14)
         self.base_mesh.T = base_pos*self.base_mesh.T
         self.robot.base = self.robot.base*base_pos*offset
-
-        #env.add(self.base_mesh)
-        #env.add(self.robot)        
-        #env.add(examplemodel_mesh)
-        #env.step(0)
-
-
-        # #USE THIS TO TEST ROBOT IN PYTHON
-        # q = [0,0,0,0,0,0]
-        # plt.close()
-        # fig = self.robot.teach(q, block=False)
-        # while not keyboard.is_pressed('enter'):
-        #     fig.step(0.05)
-        # fig.close()
-
-
-    def get_robot(self):
-        return self.robot
-        
-        #return self.robot
-        
 
 class Assignment2:
     
@@ -121,10 +97,12 @@ class Assignment2:
         initial_pos = SE3(0,0,0)
         cobotHolder = myCobot280(initial_pos)
 
-        self.mycobot280 = cobotHolder.get_robot()
+        self.mycobot280 = cobotHolder.robot
         env.add(self.mycobot280)
         env.add(cobotHolder.base_mesh)
-
+        box_dir = "mycobot280_meshes\Box.stl"
+        box_mesh = Mesh(box_dir, pose = SE3(1,0,0), scale = (1,1,1), color = (0.7,0.2,0.2))
+        env.add(box_mesh)
 
         env.step(0)
         

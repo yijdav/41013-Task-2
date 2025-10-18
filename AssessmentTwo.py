@@ -171,24 +171,25 @@ class Assignment2:
                 env.step(float(dt))
 
 
-
-
-    def AnimateCobot280(self):
-        
-        sideLength = 0.2
-        steps_per_side=30
-        dt=0.05
-        laps = 7
-        origin = SE3(0.28,0.18,0.07) * SE3.Rx(-pi)
-        box_dir = "Box.stl"
-        box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+    def drawBox(self,origin,sideLength,steps_per_side,laps,dt=0.05):
         self.penDots = []
         # Call the RMRC function where laps is how tall to make the box
         for i in range(laps):        
             self.rmrc_draw_square(self.mycobot280, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
         for dot in self.penDots:
             env.remove(dot)
+        box_dir = "Box.stl"
+        box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box_mesh)
+
+    def AnimateCobot280(self):
+        
+        sideLength = 0.2
+        steps_per_side=30      
+        laps = 2
+        origin = SE3(0.28,0.18,0.07) * SE3.Rx(-pi)
+        self.drawBox(origin,sideLength,steps_per_side,laps)
+        
 
         #initialq = self.mycobot280.ikine_LM(origin,q0=self.mycobot280.q,mask=[1,1,1,1,1,1],joint_limits=True).q
         #self.mycobot280.q = initialq

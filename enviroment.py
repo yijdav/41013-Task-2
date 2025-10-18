@@ -22,8 +22,11 @@ from guiCode import guiAndControl
 
 
 class core:
+    def __init__(self):
+        self.penDots = []
+
+
     def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt):
-        
         #Defines the corners of the square, using origin as a starting point
         corners = [
             origin,
@@ -88,9 +91,12 @@ class core:
 
 
 
+
+
 if __name__ == "__main__":
     env = swift.Swift()
     env.launch(realtime=True)
+    c = core()
        
     #--------------------------------------------ENVIRONMENT--------------------------------------------#
     sca=0.1
@@ -123,13 +129,18 @@ if __name__ == "__main__":
         r1.q = q1[i]
         r2.q = q2[i]
         r3.q = q3[i]
-        r4.robot.q = q4[i]
+        # r4.robot.q = q4[i]
         env.step(0.05)
+
+    c.rmrc_draw_square(r4.robot, env, SE3(2.3,-0.5,0.1)*SE3.Rx(-pi), 0.2, 30, dt=0.05)
+    env.add(Mesh("Box.stl", pose = SE3(2.3,-0.5,0.0)*SE3.Rx(pi/2), scale = (1.0, 1.0, 1.0), color = (0.7,0.2,0.2)))
+    
+    
 
     #--------------------------------------------GUI--------------------------------------------#
     e = guiAndControl(env, r1, r2, r3, r4)
-    # builds the robot control buttons and sliders
-    e.robot_joint_control() #I keep deleting this by accident lol
+    
+    e.robot_joint_control() #builds the robot control buttons and sliders, I keep deleting this by accident lol
 
     # --- Joystick setup (disabled until a robot is selected) ---
     pygame.init()

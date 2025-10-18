@@ -178,10 +178,10 @@ class Assignment2:
         sideLength = 0.2
         steps_per_side=30
         dt=0.05
-        laps = 3
-        origin = SE3(0.3,0.2,0.07)* SE3.Rx(-pi)
+        laps = 7
+        origin = SE3(0.28,0.18,0.07) * SE3.Rx(-pi)
         box_dir = "Box.stl"
-        box_mesh = Mesh(box_dir, pose = SE3(0.3,0.2,0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
         self.penDots = []
         # Call the RMRC function where laps is how tall to make the box
         for i in range(laps):        

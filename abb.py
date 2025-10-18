@@ -1,7 +1,7 @@
+# ABB Robot class
 import numpy as np
-from ir_support import UR3
 from spatialmath import SE3
-from spatialgeometry import Cuboid, Cylinder, Mesh
+from spatialgeometry import Mesh
 from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
 from math import pi
 import swift 
@@ -9,10 +9,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import keyboard
 import spatialmath.base as spb
-import trimesh
 import roboticstoolbox as rtb
-import os
 import time
+from swift import Button
 
 # ------------------------------------------- ----------------------------------------#
 class abb(DHRobot):
@@ -66,12 +65,8 @@ class abb(DHRobot):
         
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
-            print(f"Trying to load mesh: {mesh_path}")
-            try:
-                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
-                print(f"Loaded mesh: {mesh_path}")
-            except Exception as e:
-                print(f"Failed to load mesh {mesh_path}: {e}")
+            link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
+
         DHRobot.__init__(self, links, name='KUKA')
         # Set a test joint configuration for visualization
         self.q = [0, -pi/2, 0, 0, 0, 0]
@@ -120,11 +115,11 @@ class abb(DHRobot):
         for q in qtraj:
             self.q = q
             env.step(0.02)
-
             
         env.hold()
 
     def testAllJoints(self):
+
         """
         Test the class by adding 3d objects into a new Swift window and do a simple movement
         """
@@ -144,6 +139,12 @@ class abb(DHRobot):
         time.sleep(3)
         env.hold()
 
+    def partFinding(self, part):
+        """
+        Function to find a part in the environment and move the robot to it
+        """
+        pass
+
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
     env = swift.Swift()
@@ -152,9 +153,20 @@ if __name__ == "__main__":
     r.base = SE3(0, 0, 0)
     env.add(r)
 
-r.add_sliders(env)
+    bolt = Mesh("Environmental_models\ImageToStl.com_M9x12+screw+without+head.stl", scale=[2, 2, 2])
+    env.add(bolt)
+    
+    r.add_sliders(env)
 
-while True:
-    env.step(0)
-
-    time.sleep(0.01)
+    button_pressed = {'value': False}
+    # Define the callback
+    def on_button_press(_):
+        button_pressed['value'] = True
+        print("Button pressed")
+    # Create and add the button
+    test_button = swift.Button(cb=on_button_press, desc="Select Robot")
+    env.add(test_button)
+    
+    while True:
+        env.step(0)
+        time.sleep(0.01)

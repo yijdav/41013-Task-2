@@ -88,7 +88,8 @@ class core:
                 env.add(penDot)
                 self.penDots.append(penDot)
                 env.step(float(dt))
-    def Animating(self):
+                
+    def Animating(self, robot):
         #DRAWING FIRST BOX
         sideLength = 0.2
         dt=0.05
@@ -97,7 +98,7 @@ class core:
         origin = SE3(0.28,0.18,0.07) * SE3.Rx(-pi)
         self.penDots = []
         for i in range(laps):        
-            self.rmrc_draw_square(self.mycobot280, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
+            self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
         for dot in self.penDots:
             env.remove(dot)
         box_dir = "Box.stl"
@@ -133,8 +134,8 @@ if __name__ == "__main__":
     r3.add_to_env(env)
     env.add(r4.robot)
     env.add(r4.base_mesh)
-    
-    c.Animating()
+
+    c.Animating(r4)
     #--------------------------------------------Tester--------------------------------------------#
     # Create trajectories for three robots
     steps = 50

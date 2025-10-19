@@ -101,15 +101,16 @@ class core:
         for i in range(laps):        
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
         
-        
-        for dot in getattr(self, "penDots", []):
-            if dot is not None:
-                try:
-                    dot.color = (0.0,0.0,0.0,0.0)
-                    #env.remove(dot)
-                    env.step(0.05)
-                except Exception:
-                    pass
+        for dot in self.penDots:
+            dot.color = (0.0,0.0,0.0,0.0)
+        # for dot in getattr(self, "penDots", []):
+        #     if dot is not None:
+        #         try:
+        #             dot.color = (0.0,0.0,0.0,0.0)
+        #             #env.remove(dot)
+        #             env.step(0.05)
+        #         except Exception:
+        #             pass
         env.step(0.05)
         #env.remove(self.penDots[0])
         # for dot in self.penDots:

@@ -88,22 +88,42 @@ class core:
                 env.add(penDot)
                 self.penDots.append(penDot)
                 env.step(float(dt))
-                
+
     def Animating(self, robot):
         #DRAWING FIRST BOX
         sideLength = 0.2
         dt=0.05
         steps_per_side=30      
-        laps = 2
-        origin = SE3(0.28,0.18,0.07) * SE3.Rx(-pi)
+        laps = 1
+        origin = SE3(2.3,-1,0)* SE3(0.28,0.18,0.1) * SE3.Rx(-pi)
         self.penDots = []
+
         for i in range(laps):        
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
-        for dot in self.penDots:
-            env.remove(dot)
+        
+        
+        for dot in getattr(self, "penDots", []):
+            if dot is not None:
+                try:
+                    dot.color = (0.0,0.0,0.0,0.0)
+                    #env.remove(dot)
+                    env.step(0.05)
+                except Exception:
+                    pass
+        env.step(0.05)
+        #env.remove(self.penDots[0])
+        # for dot in self.penDots:
+        #     env.remove(dot)
+        #     env.step(0.5)
         box_dir = "Box.stl"
         box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box_mesh)
+
+        print("Still running!")
+        env.step(0.1)
+        cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
+        env.add(cube)
+
 
 
 
@@ -124,8 +144,8 @@ if __name__ == "__main__":
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
-    r4pos = SE3(0,1,0)
-    r4 = myCobot280(SE3(2.3,-1,0)) 
+    r4pos = SE3(2.3,-1,0)
+    r4 = myCobot280(r4pos) 
     r1.base = SE3(2.3, 0, 0)
     env.add(r1)
     r2.base = SE3(2.5, 1, 0)
@@ -135,7 +155,15 @@ if __name__ == "__main__":
     env.add(r4.robot)
     env.add(r4.base_mesh)
 
-    c.Animating(r4)
+    c.Animating(r4.robot)
+
+    print("STILL RUNNING L BOZO")
+    
+    traj = r1.jtraj(np.array[0,0,0,0,0,0],np.array[1,1,1,1,1,1],30)
+    for q in traj.q:
+        r1.q = q
+
+
     #--------------------------------------------Tester--------------------------------------------#
     # Create trajectories for three robots
     steps = 50

@@ -74,11 +74,8 @@ class core:
                 JT = J.T
                 qdot = JT @ np.linalg.inv(J @ JT + (_lambda**2) * np.eye(6)) @ xdot_full
 
-
-
                 #Update joint positions
                 robot.q = (robot.q + qdot * dt).astype(float)
-
 
                 #Draw line using pen
                 penDot = Sphere(radius=0.01, color=[1.0, 0.0, 0.0, 1.0])
@@ -89,41 +86,29 @@ class core:
                 self.penDots.append(penDot)
                 env.step(float(dt))
 
-    def Animating(self, robot):
+    def Animating(self, robot, origin):
         #DRAWING FIRST BOX
         sideLength = 0.2
         dt=0.05
         steps_per_side=30      
         laps = 1
-        origin = SE3(2.3,-1,0)* SE3(0.28,0.18,0.1) * SE3.Rx(-pi)
         self.penDots = []
 
         for i in range(laps):        
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
         
-        for dot in self.penDots:
-            dot.color = (0.0,0.0,0.0,0.0)
-        # for dot in getattr(self, "penDots", []):
-        #     if dot is not None:
-        #         try:
-        #             dot.color = (0.0,0.0,0.0,0.0)
-        #             #env.remove(dot)
-        #             env.step(0.05)
-        #         except Exception:
-        #             pass
-        env.step(0.05)
-        #env.remove(self.penDots[0])
         # for dot in self.penDots:
-        #     env.remove(dot)
-        #     env.step(0.5)
+        #     dot.color = (0.1,0.3,0.1,0.1)
+            
+        env.step(0.05)
         box_dir = "Box.stl"
         box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box_mesh)
 
-        print("Still running!")
-        env.step(0.1)
-        cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
-        env.add(cube)
+        # print("Still running!")
+        # env.step(0.1)
+        # cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
+        # env.add(cube)
 
 
 
@@ -156,13 +141,9 @@ if __name__ == "__main__":
     env.add(r4.robot)
     env.add(r4.base_mesh)
 
-    c.Animating(r4.robot)
+    c.Animating(r4.robot, SE3(2.3,-1,0)* SE3(0.28,0.18,0.1) * SE3.Rx(-pi))
 
-    print("STILL RUNNING L BOZO")
     
-    traj = r1.jtraj(np.array[0,0,0,0,0,0],np.array[1,1,1,1,1,1],30)
-    for q in traj.q:
-        r1.q = q
 
 
     #--------------------------------------------Tester--------------------------------------------#
@@ -180,9 +161,9 @@ if __name__ == "__main__":
         # r4.robot.q = q4[i]
         env.step(0.05)
 
-    c.rmrc_draw_square(r4.robot, env, SE3(2.3,-0.5,0.1)*SE3.Rx(-pi), 0.2, 30, dt=0.05)
-    env.add(Mesh("Box.stl", pose = SE3(2.3,-0.5,0.0)*SE3.Rx(pi/2), scale = (1.0, 1.0, 1.0), color = (0.7,0.2,0.2)))
-    
+    # c.rmrc_draw_square(r4.robot, env, SE3(2.3,-0.5,0.1)*SE3.Rx(-pi), 0.2, 30, dt=0.05)
+    # env.add(Mesh("Box.stl", pose = SE3(2.3,-0.5,0.0)*SE3.Rx(pi/2), scale = (1.0, 1.0, 1.0), color = (0.7,0.2,0.2)))
+    c.Animating(r4.robot, SE3(2.3,-0.5,0.1)*SE3.Rx(-pi))
     
 
     #--------------------------------------------GUI--------------------------------------------#

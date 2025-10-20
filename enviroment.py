@@ -23,10 +23,15 @@ from guiCode import guiAndControl
 
 class core:
     def __init__(self):
-        pass    
+        self.penDots = []
 
+    def wait_until_run(self, should_run, env, sleep=0.01):
+        # Pause here without blocking Swift/UI
+        while not should_run():
+            env.step(0)
+            time.sleep(sleep)
 
-    def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt):
+    def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt, should_run=lambda: True):
         #Defines the corners of the square, using origin as a starting point
         corners = [
             origin,
@@ -36,16 +41,24 @@ class core:
             origin  # return to start
         ]
 
-        #Compute initial joint configuration using IK
-        q = robot.ikine_LM(corners[0], q0=np.array(robot.q, dtype=float), mask=[1,1,1,1,1,1], joint_limits=True).q
-        robot.q = np.array(q, dtype=float)  # Ensure standard Python float array
+        # Try IK, but don't block if it fails
+        try:
+            q = robot.ikine_LM(corners[0], q0=np.array(robot.q, dtype=float),
+                               mask=[1,1,1,1,1,1], joint_limits=True, ilimit=100, tol=1e-3).q
+            robot.q = np.array(q, dtype=float)
+        except Exception:
+            pass
 
         #Repeat section for each edge of the square
         for i in range(len(corners)-1):
+            if not should_run(): 
+                self.wait_until_run(should_run, env)
             start_pose = corners[i]
             end_pose = corners[i+1]
 
             for s in np.linspace(0, 1, steps_per_side):
+                if not should_run(): 
+                    self.wait_until_run(should_run, env)
                 #Interpolate in Cartesian space
                 desired_pose = start_pose.interp(end_pose, s)
 
@@ -74,11 +87,8 @@ class core:
                 JT = J.T
                 qdot = JT @ np.linalg.inv(J @ JT + (_lambda**2) * np.eye(6)) @ xdot_full
 
-
-
                 #Update joint positions
                 robot.q = (robot.q + qdot * dt).astype(float)
-
 
                 #Draw line using pen
                 penDot = Sphere(radius=0.01, color=[1.0, 0.0, 0.0, 1.0])
@@ -89,41 +99,46 @@ class core:
                 self.penDots.append(penDot)
                 env.step(float(dt))
 
-    def Animating(self, robot):
+    def Animating(self, robot, should_run=lambda: True):
         #DRAWING FIRST BOX
+        box_dir = "Box.stl"
+
         sideLength = 0.2
         dt=0.05
         steps_per_side=30      
         laps = 1
-        origin = SE3(2.3,-1,0)* SE3(0.28,0.18,0.1) * SE3.Rx(-pi)
-        self.penDots = []
-
+        origin = SE3(2.3,-1,0)* SE3(0.17,0.41,0.1) * SE3.Rx(-pi) #FIRST SE3 IS ROBOTS BASE SECOND IS OFFSET FROM ROBOT POS
         for i in range(laps):        
-            self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
-        
-        for dot in self.penDots:
-            dot.color = (0.0,0.0,0.0,0.0)
-        # for dot in getattr(self, "penDots", []):
-        #     if dot is not None:
-        #         try:
-        #             dot.color = (0.0,0.0,0.0,0.0)
-        #             #env.remove(dot)
-        #             env.step(0.05)
-        #         except Exception:
-        #             pass
-        env.step(0.05)
-        #env.remove(self.penDots[0])
-        # for dot in self.penDots:
-        #     env.remove(dot)
-        #     env.step(0.5)
-        box_dir = "Box.stl"
-        box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+            if not should_run(): break
+            self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
+        box_mesh = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box_mesh)
 
-        print("Still running!")
-        env.step(0.1)
-        cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
-        env.add(cube)
+
+        #DRAWING SECOND BOX
+        origin = SE3(2.3,-1,0)* SE3(-0.26,0.41,0.1) * SE3.Rx(-pi) #ONLY CHANGING ORIGIN, OTHER VARIABLES REMAIN THE SAME SO NO NEED TO RESTATE
+        for i in range(laps):        
+            if not should_run(): break
+            self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
+        box_mesh = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        env.add(box_mesh)
+
+            
+        env.step(0.05)
+        
+        steps = 50
+        q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
+        q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
+        q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
+
+        for i in range(steps):
+            if not e.estop.should_run():
+                c.wait_until_run(should_run=e.estop.should_run, env=env)
+            r1.q = q1[i]
+            r2.q = q2[i]
+            r3.q = q3[i]
+            env.step(0.05)
+
 
 
 
@@ -141,13 +156,14 @@ if __name__ == "__main__":
     sca=0.1
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
     env.add(workshop)
+
     #--------------------------------------------ROBOTS--------------------------------------------#
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
     r4pos = SE3(2.3,-1,0)
     r4 = myCobot280(r4pos) 
-    r1.base = SE3(2.3, 0, 0)
+    r1.base = SE3(2.6, 0, 0)
     env.add(r1)
     r2.base = SE3(2.5, 1, 0)
     env.add(r2)
@@ -156,49 +172,24 @@ if __name__ == "__main__":
     env.add(r4.robot)
     env.add(r4.base_mesh)
 
-    c.Animating(r4.robot)
-
-    print("STILL RUNNING L BOZO")
-    
-    traj = r1.jtraj(np.array[0,0,0,0,0,0],np.array[1,1,1,1,1,1],30)
-    for q in traj.q:
-        r1.q = q
-
-
-    #--------------------------------------------Tester--------------------------------------------#
-    # Create trajectories for three robots
-    steps = 50
-    q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
-    q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
-    q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
-    q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
-
-    for i in range(steps):
-        r1.q = q1[i]
-        r2.q = q2[i]
-        r3.q = q3[i]
-        # r4.robot.q = q4[i]
-        env.step(0.05)
-
-    c.rmrc_draw_square(r4.robot, env, SE3(2.3,-0.5,0.1)*SE3.Rx(-pi), 0.2, 30, dt=0.05)
-    env.add(Mesh("Box.stl", pose = SE3(2.3,-0.5,0.0)*SE3.Rx(pi/2), scale = (1.0, 1.0, 1.0), color = (0.7,0.2,0.2)))
-    
-    
-
-    #--------------------------------------------GUI--------------------------------------------#
+    # Build GUI early so we can pass should_run into animations
     e = guiAndControl(env, r1, r2, r3, r4)
-    
-    e.robot_joint_control() #builds the robot control buttons and sliders, I keep deleting this by accident lol
+    e.robot_joint_control()  # buttons, sliders, e-stop
 
-    # --- Joystick setup (disabled until a robot is selected) ---
-    pygame.init()
-    pygame.joystick.init()
+
+    e.obstructionMovement()
+
+    c.Animating(r4.robot, should_run=e.estop.should_run)
+    
+
+
+
+    # Joystick setup
+    pygame.init(); pygame.joystick.init()
     joy = pygame.joystick.Joystick(0) if pygame.joystick.get_count() > 0 else None
     if joy: joy.init()
-    print(f"Joystick: {joy.get_name()} | Buttons={joy.get_numbuttons()} Axes={joy.get_numaxes()}") if joy else print("No joystick connected")
-
 
     while True:
-        e.joystick_tick(joy, 0.02, 0.3, 0.8, 0.1, 0.1, 0.5)
+        e.joystick_tick(joy, 0.02, 0.3, 0.8, 0.1, 0.1, 0.5)  # gated by e.stop
         env.step(0)
         time.sleep(0.01)

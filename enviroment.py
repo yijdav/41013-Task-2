@@ -157,9 +157,6 @@ if __name__ == "__main__":
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
     env.add(workshop)
 
-    sca = 0.005
-    obstruction = Mesh('Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl', scale=[sca, sca, sca*1.1], pose=SE3(1.5,0.2,0))
-    env.add(obstruction)
     #--------------------------------------------ROBOTS--------------------------------------------#
     r1 = Kuka()
     r2 = abb()
@@ -179,10 +176,11 @@ if __name__ == "__main__":
     e = guiAndControl(env, r1, r2, r3, r4)
     e.robot_joint_control()  # buttons, sliders, e-stop
 
-    # Example animations that can be interrupted by e-stop
+
+    e.obstructionMovement()
+
     c.Animating(r4.robot, should_run=e.estop.should_run)
     
-
 
 
 

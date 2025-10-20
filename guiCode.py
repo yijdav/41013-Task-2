@@ -163,3 +163,34 @@ class guiAndControl:
         rob = self.active["robot"]
         dq = self._dls_step(rob, dx, lam_=lam)
         rob.q = self._clamp(rob, np.array(rob.q, dtype=float) + dq * dt_joy)
+
+
+
+    def move_ob(self,dx=0.0, dy=0.0):
+        # Respect e-stop if present
+        if hasattr(self, "estop") and not self.estop.should_run():
+            return
+        # World-frame translate then update Swift
+        try:
+            self.obstruction.T = SE3(float(dx), float(dy), 0.0) * self.obstruction.T
+        except Exception:
+            # Fallback if your Mesh uses a different transform prop
+            try:
+                self.obstruction.pose = SE3(float(dx), float(dy), 0.0) * self.obstruction.pose
+            except Exception:
+                pass
+        self.env.step(0)
+
+    def obstructionMovement(self):
+        sca = 0.005
+        self.obstruction = Mesh(
+            'Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl',
+            scale=(sca, sca, sca * 1.1),
+            pose=SE3(1.5, 0.2, 0.0),
+        )
+        self.env.add(self.obstruction)
+        Stride = 0.067  # metres per press
+        self.env.add(swift.Button(desc="⬅ Obstruction Left",  cb=lambda _: self.move_ob(-Stride, 0.0)))
+        self.env.add(swift.Button(desc="➡ Obstruction Right", cb=lambda _: self.move_ob( Stride, 0.0)))
+        self.env.add(swift.Button(desc="⬆ Obstruction Up",    cb=lambda _: self.move_ob(0.0,  Stride)))
+        self.env.add(swift.Button(desc="⬇ Obstruction Down",  cb=lambda _: self.move_ob(0.0, -Stride)))

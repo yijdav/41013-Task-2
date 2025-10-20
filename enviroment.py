@@ -107,7 +107,7 @@ class core:
         dt=0.05
         steps_per_side=30      
         laps = 1
-        origin = SE3(2.3,-1,0)* SE3(0.17,0.38,0.1) * SE3.Rx(-pi) #FIRST SE3 IS ROBOTS BASE SECOND IS OFFSET FROM ROBOT POS
+        origin = SE3(2.3,-1,0)* SE3(0.17,0.41,0.1) * SE3.Rx(-pi) #FIRST SE3 IS ROBOTS BASE SECOND IS OFFSET FROM ROBOT POS
         for i in range(laps):        
             if not should_run(): break
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
@@ -116,7 +116,7 @@ class core:
 
 
         #DRAWING SECOND BOX
-        origin = SE3(2.3,-1,0)* SE3(-0.28,0.38,0.1) * SE3.Rx(-pi) #ONLY CHANGING ORIGIN, OTHER VARIABLES REMAIN THE SAME SO NO NEED TO RESTATE
+        origin = SE3(2.3,-1,0)* SE3(-0.26,0.41,0.1) * SE3.Rx(-pi) #ONLY CHANGING ORIGIN, OTHER VARIABLES REMAIN THE SAME SO NO NEED TO RESTATE
         for i in range(laps):        
             if not should_run(): break
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)

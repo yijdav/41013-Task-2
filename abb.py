@@ -1,7 +1,7 @@
+# ABB Robot class
 import numpy as np
-from ir_support import UR3
 from spatialmath import SE3
-from spatialgeometry import Cuboid, Cylinder, Mesh
+from spatialgeometry import Mesh
 from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
 from math import pi
 import swift 
@@ -9,10 +9,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import keyboard
 import spatialmath.base as spb
-import trimesh
 import roboticstoolbox as rtb
-import os
 import time
+from swift import Button
 
 # ------------------------------------------- ----------------------------------------#
 class abb(DHRobot):
@@ -56,20 +55,46 @@ class abb(DHRobot):
             [0.32, 0.32, 0.32, 1.0]    # Dark gray
         ]
 
+        # Add joint limits for each link
+        links[0].qlim = [-pi, pi]      # Joint 1: ±180°
+        links[1].qlim = [-pi, pi]      # Joint 2: ±180°
+        links[2].qlim = [-pi/2, pi/2]      # Joint 3: ±90°
+        links[3].qlim = [-pi, pi]      # Joint 4: ±180°
+        links[4].qlim = [-pi, pi]      # Joint 5: ±180°
+        links[5].qlim = [-pi, pi]      # Joint 6: ±180°
         
         for i, link in enumerate(links):
             mesh_path = f"{mesh_dir}/{mesh_files[i]}"
-            print(f"Trying to load mesh: {mesh_path}")
-            try:
-                link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
-                print(f"Loaded mesh: {mesh_path}")
-            except Exception as e:
-                print(f"Failed to load mesh {mesh_path}: {e}")
+            link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i], color = abb_colors[i])]
+
         DHRobot.__init__(self, links, name='KUKA')
         # Set a test joint configuration for visualization
         self.q = [0, -pi/2, 0, 0, 0, 0]
         self._qtest = [0,-pi/2,0,0,0,0]
 
+    def set_joint(self, j, value):
+        """Set joint value from slider (value in degrees)"""
+        q = list(self.q)  # Create a copy of current joint values
+        q[j] = np.deg2rad(float(value))  # Convert degrees to radians
+        self.q = q
+
+    def add_sliders(self, env):
+        """Add interactive sliders for joint control"""
+        j = 0
+        for link in self.links:
+            if link.isjoint:
+                env.add(
+                    swift.Slider(
+                        lambda x, j=j: self.set_joint(j, x),
+                        min=np.round(np.rad2deg(link.qlim[0]), 2),
+                        max=np.round(np.rad2deg(link.qlim[1]), 2),
+                        step=1,
+                        value=np.round(np.rad2deg(self.q[j]), 2),
+                        desc=" Joint " + str(j),
+                        unit="&#176;",
+                    )
+                )
+                j += 1
 
     # -----------------------------------------------------------------------------------#
     def test(self):
@@ -90,11 +115,11 @@ class abb(DHRobot):
         for q in qtraj:
             self.q = q
             env.step(0.02)
-
             
         env.hold()
 
     def testAllJoints(self):
+
         """
         Test the class by adding 3d objects into a new Swift window and do a simple movement
         """
@@ -114,13 +139,34 @@ class abb(DHRobot):
         time.sleep(3)
         env.hold()
 
+    def partFinding(self, part):
+        """
+        Function to find a part in the environment and move the robot to it
+        """
+        pass
+
 # ---------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    abb().test()
-    # env = swift.Swift()
-    # env.launch(realtime=True)
-    # r = abb()
-    # r.base = SE3(0, 0, 0)
-    # env.add(r)
+    env = swift.Swift()
+    env.launch(realtime=True)
+    r = abb()
+    r.base = SE3(0, 0, 0)
+    env.add(r)
 
-    # env.hold()
+    bolt = Mesh("Environmental_models\ImageToStl.com_M9x12+screw+without+head.stl", scale=[2, 2, 2])
+    env.add(bolt)
+    
+    r.add_sliders(env)
+
+    button_pressed = {'value': False}
+    # Define the callback
+    def on_button_press(_):
+        button_pressed['value'] = True
+        print("Button pressed")
+    # Create and add the button
+    test_button = swift.Button(cb=on_button_press, desc="Select Robot")
+    env.add(test_button)
+    
+    while True:
+        env.step(0)
+        time.sleep(0.01)

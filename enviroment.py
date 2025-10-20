@@ -140,13 +140,17 @@ if __name__ == "__main__":
     sca=0.1
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
     env.add(workshop)
+
+    sca = 0.001
+    obstruction = Mesh('Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl', scale=[sca, sca, sca], pose=SE3(1.5,0.2,0))
+    env.add(obstruction)
     #--------------------------------------------ROBOTS--------------------------------------------#
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
     r4pos = SE3(2.3,-1,0)
     r4 = myCobot280(r4pos) 
-    r1.base = SE3(2.3, 0, 0)
+    r1.base = SE3(2.6, 0, 0)
     env.add(r1)
     r2.base = SE3(2.5, 1, 0)
     env.add(r2)

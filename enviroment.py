@@ -1,7 +1,7 @@
 import numpy as np
 from ir_support import UR3
 from spatialmath import SE3
-from spatialgeometry import Cuboid, Cylinder, Mesh
+from spatialgeometry import Cuboid, Cylinder, Mesh, Sphere
 from roboticstoolbox import DHLink, DHRobot, jtraj, PrismaticDH
 from math import pi
 import swift 
@@ -18,91 +18,116 @@ from abb import abb
 #from Cobot280 import myCobot280
 from AssessmentTwo import myCobot280, Assignment2
 import pygame
-# -----------------------------------------------------------------------------------#
-
-    # -----------------------------------------------------
-    # ---------------- Robot joint sliders ----------------
-    # -----------------------------------------------------
-# ---------- Control buttons: also enable joystick on selection ----------
-def select_kuka(_=None): 
-    active["robot"] = r1
-    joystick_enabled["v"] = True
-    print("Controlling: Kuka")
-def select_abb(_=None):
-    active["robot"] = r2
-    joystick_enabled["v"] = True
-    print("Controlling: ABB")
-def select_ur3(_=None):
-    active["robot"] = r3
-    joystick_enabled["v"] = True
-    print("Controlling: UR3")
-def select_cobot(_=None):
-    active["robot"] = r4.robot
-    joystick_enabled["v"] = True
-    print("Controlling: myCobot280")
-
-def _set_joint_deg(robot, j, deg): # fetches the robot and sets the jth joint to deg degrees
-    q = list(robot.q)
-    qmin, qmax = -pi, pi
-    q[j] = np.clip(np.deg2rad(float(deg)), qmin, qmax)
-    robot.q = q
-
-def slider_cb(value_deg, joint_index): # callback for sliders, sets the joint of the active robot
-    rob = active["robot"]
-    if joint_index >= getattr(rob, "n", len(getattr(rob, "links", []))):
-        return
-    _set_joint_deg(rob, joint_index, value_deg)
-    env.step(0)
-
-def robot_joint_control():
-    # Control buttons for active robot selection
-    env.add(swift.Button(desc="Control Kuka", cb=select_kuka))
-    env.add(swift.Button(desc="Control ABB", cb=select_abb))
-    env.add(swift.Button(desc="Control UR3", cb=select_ur3))
-    env.add(swift.Button(desc="Control myCobot", cb=select_cobot))
-
-    shared_sliders = []
-    for i in range(6):
-        init_deg = 0.0
-        try:
-            init_deg = float(np.rad2deg(active["robot"].q[i]))
-        except Exception:
-            pass
-        s = swift.Slider(
-            cb=lambda v, j=i: slider_cb(v, j),
-            min=-180, max=180, step=1,
-            value=init_deg,
-            desc=f"Joint {i+1} (Active Robot)",
-            unit="&#176;",
-        )
-        env.add(s)
-        shared_sliders.append(s)
-    return shared_sliders
+from guiCode import guiAndControl
 
 
-    # ---------------------------------------------------------------------
-    # ---------------- controller manipulation of end effector ------------
-    # ---------------------------------------------------------------------
+class core:
+    def __init__(self):
+        pass    
 
-def _clamp_to_qlim(robot, q):
-    qq = np.array(q, dtype=float)
-    n = len(qq)
-    for j in range(n):
-        qmin, qmax = -pi, pi
-        qq[j] = np.clip(qq[j], qmin, qmax)
-    return qq
 
-def _dls_step(robot, dx, lam_=0.1, dq_limit=2.0):
-    if not hasattr(robot, "jacob0"):
-        return np.zeros(getattr(robot, "n", 6))
-    J = robot.jacob0(robot.q)  # 6xN
-    JTJ = J.T @ J
-    N = JTJ.shape[0]
-    dq = np.linalg.solve(JTJ + (lam_**2) * np.eye(N), J.T @ dx)
-    return np.clip(dq, -dq_limit, dq_limit)
+    def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt):
+        #Defines the corners of the square, using origin as a starting point
+        corners = [
+            origin,
+            origin * SE3(side_length, 0, 0),
+            origin * SE3(side_length, side_length, 0),
+            origin * SE3(0, side_length, 0),
+            origin  # return to start
+        ]
 
-def _joy_axis(v, th):
-    return 0.0 if abs(v) < th else v
+        #Compute initial joint configuration using IK
+        q = robot.ikine_LM(corners[0], q0=np.array(robot.q, dtype=float), mask=[1,1,1,1,1,1], joint_limits=True).q
+        robot.q = np.array(q, dtype=float)  # Ensure standard Python float array
+
+        #Repeat section for each edge of the square
+        for i in range(len(corners)-1):
+            start_pose = corners[i]
+            end_pose = corners[i+1]
+
+            for s in np.linspace(0, 1, steps_per_side):
+                #Interpolate in Cartesian space
+                desired_pose = start_pose.interp(end_pose, s)
+
+                #Compute Jacobian
+                J = robot.jacob0(robot.q)
+
+                #Computes xdot, that is the change in translation during a timestep dt
+                current_pose = robot.fkine(robot.q)
+                xdot = (desired_pose.t - current_pose.t) / dt
+
+                #Computes the rotational component of xdot using the skew symmetric matrix over dt
+                R_current = current_pose.R
+                R_desired = desired_pose.R
+                R_diff = R_desired @ R_current.T
+                ang_diff = np.array([
+                    R_diff[2,1]-R_diff[1,2],
+                    R_diff[0,2]-R_diff[2,0],
+                    R_diff[1,0]-R_diff[0,1]
+                ]) / 2 / dt
+
+                #Combines rotational and translational components of xdot
+                xdot_full = np.hstack((xdot.astype(float), ang_diff.astype(float)))
+
+                #Compute joint velocities
+                _lambda = 0.1  #damping factor, tweak between 0.01 and 0.5
+                JT = J.T
+                qdot = JT @ np.linalg.inv(J @ JT + (_lambda**2) * np.eye(6)) @ xdot_full
+
+
+
+                #Update joint positions
+                robot.q = (robot.q + qdot * dt).astype(float)
+
+
+                #Draw line using pen
+                penDot = Sphere(radius=0.01, color=[1.0, 0.0, 0.0, 1.0])
+                fk = robot.fkine(robot.q)
+                _offset = SE3(0,0,-0.06)
+                penDot.T = SE3(fk.t.flatten().astype(float)) *_offset
+                env.add(penDot)
+                self.penDots.append(penDot)
+                env.step(float(dt))
+
+    def Animating(self, robot):
+        #DRAWING FIRST BOX
+        sideLength = 0.2
+        dt=0.05
+        steps_per_side=30      
+        laps = 1
+        origin = SE3(2.3,-1,0)* SE3(0.28,0.18,0.1) * SE3.Rx(-pi)
+        self.penDots = []
+
+        for i in range(laps):        
+            self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt)
+        
+        for dot in self.penDots:
+            dot.color = (0.0,0.0,0.0,0.0)
+        # for dot in getattr(self, "penDots", []):
+        #     if dot is not None:
+        #         try:
+        #             dot.color = (0.0,0.0,0.0,0.0)
+        #             #env.remove(dot)
+        #             env.step(0.05)
+        #         except Exception:
+        #             pass
+        env.step(0.05)
+        #env.remove(self.penDots[0])
+        # for dot in self.penDots:
+        #     env.remove(dot)
+        #     env.step(0.5)
+        box_dir = "Box.stl"
+        box_mesh = Mesh(box_dir, pose = SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        env.add(box_mesh)
+
+        print("Still running!")
+        env.step(0.1)
+        cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
+        env.add(cube)
+
+
+
+
 
 
 
@@ -110,6 +135,8 @@ def _joy_axis(v, th):
 if __name__ == "__main__":
     env = swift.Swift()
     env.launch(realtime=True)
+    c = core()
+       
     #--------------------------------------------ENVIRONMENT--------------------------------------------#
     sca=0.1
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
@@ -118,23 +145,33 @@ if __name__ == "__main__":
     r1 = Kuka()
     r2 = abb()
     r3 = UR3()
-    r4pos = SE3(0,1,0)
-    r4 = myCobot280(SE3(0,1,0)) 
-    r1.base = SE3(0.5, 0.5, 0)
+    r4pos = SE3(2.3,-1,0)
+    r4 = myCobot280(r4pos) 
+    r1.base = SE3(2.3, 0, 0)
     env.add(r1)
-    r2.base = SE3(0, 0, 0)
+    r2.base = SE3(2.5, 1, 0)
     env.add(r2)
-    r3.base = SE3(0, 2, 0)
+    r3.base = SE3(2.1, 1, 0)
     r3.add_to_env(env)
     env.add(r4.robot)
     env.add(r4.base_mesh)
+
+    c.Animating(r4.robot)
+
+    print("STILL RUNNING L BOZO")
+    
+    traj = r1.jtraj(np.array[0,0,0,0,0,0],np.array[1,1,1,1,1,1],30)
+    for q in traj.q:
+        r1.q = q
+
+
     #--------------------------------------------Tester--------------------------------------------#
     # Create trajectories for three robots
     steps = 50
     q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
     q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
     q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
-    # q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
+    q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
 
     for i in range(steps):
         r1.q = q1[i]
@@ -143,62 +180,25 @@ if __name__ == "__main__":
         # r4.robot.q = q4[i]
         env.step(0.05)
 
+    c.rmrc_draw_square(r4.robot, env, SE3(2.3,-0.5,0.1)*SE3.Rx(-pi), 0.2, 30, dt=0.05)
+    env.add(Mesh("Box.stl", pose = SE3(2.3,-0.5,0.0)*SE3.Rx(pi/2), scale = (1.0, 1.0, 1.0), color = (0.7,0.2,0.2)))
+    
+    
 
-    # Assignment2().AnimateCobot280()
-
-    active = {"robot": r1}  # set Kuka as the default active robot
-
-    # builds the robot control buttons and sliders
-    robot_joint_control() #IMPORTANT DONT DELETE, I keep deleting this by accident lol
+    #--------------------------------------------GUI--------------------------------------------#
+    e = guiAndControl(env, r1, r2, r3, r4)
+    
+    e.robot_joint_control() #builds the robot control buttons and sliders, I keep deleting this by accident lol
 
     # --- Joystick setup (disabled until a robot is selected) ---
     pygame.init()
     pygame.joystick.init()
-    joy = None
-    if pygame.joystick.get_count() > 0:
-        joy = pygame.joystick.Joystick(0)
-        joy.init()
-        print(f"Joystick: {joy.get_name()} | Buttons={joy.get_numbuttons()} Axes={joy.get_numaxes()}")
-    else:
-        print("No joystick connected")
-
-    joystick_enabled = {"v": False}  # becomes True when a Control button is pressed
-
-    
-    # Joystick params
-    dt_joy = 0.02
-    Kv = 0.3      # linear gain
-    Kw = 0.8      # angular gain
-    lam = 0.1     # DLS damping
-    deadzone = 0.1
-    button_gain = 0.5
-
-    def joystickTick():
-        if joystick_enabled["v"] and pygame.joystick.get_count() > 0:
-            pygame.event.pump()
-            axes = [ _joy_axis(joy.get_axis(i), deadzone) for i in range(joy.get_numaxes()) ]
-            buttons = [ joy.get_button(i) for i in range(joy.get_numbuttons()) ]
-
-            # Map joystick -> spatial velocity [vx, vy, vz, wx, wy, wz]
-            vx = Kv * (axes[0] if len(axes) > 0 else 0.0)                       # left X
-            vy = -Kv * (axes[1] if len(axes) > 1 else 0.0)                      # left Y (invert)
-            vz = Kv * button_gain * ((buttons[3] if len(buttons)>3 else 0) - (buttons[0] if len(buttons)>0 else 0))  # TRIANGLE - CROSS
-
-            wx = Kw * (axes[2] if len(axes) > 2 else 0.0)                       # right X
-            wy = Kw * (axes[3] if len(axes) > 3 else 0.0)                       # right Y
-            wz = Kw * button_gain * ((buttons[2] if len(buttons)>2 else 0) - (buttons[1] if len(buttons)>1 else 0))  # SQUARE - CIRCLE
-
-            dx = np.array([vx, vy, vz, wx, wy, wz], dtype=float)
-
-            rob = active["robot"]
-            dq = _dls_step(rob, dx, lam_=lam)
-            q_new = np.array(rob.q, dtype=float) + dq * dt_joy
-            q_new = _clamp_to_qlim(rob, q_new)
-            rob.q = q_new
+    joy = pygame.joystick.Joystick(0) if pygame.joystick.get_count() > 0 else None
+    if joy: joy.init()
+    print(f"Joystick: {joy.get_name()} | Buttons={joy.get_numbuttons()} Axes={joy.get_numaxes()}") if joy else print("No joystick connected")
 
 
     while True:
-
-        joystickTick()
+        e.joystick_tick(joy, 0.02, 0.3, 0.8, 0.1, 0.1, 0.5)
         env.step(0)
         time.sleep(0.01)

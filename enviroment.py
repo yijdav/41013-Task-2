@@ -126,12 +126,19 @@ class core:
             
         env.step(0.05)
         
-        
+        steps = 50
+        q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
+        q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
+        q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
 
-        # print("Still running!")
-        # env.step(0.1)
-        # cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
-        # env.add(cube)
+        for i in range(steps):
+            if not e.estop.should_run():
+                c.wait_until_run(should_run=e.estop.should_run, env=env)
+            r1.q = q1[i]
+            r2.q = q2[i]
+            r3.q = q3[i]
+            env.step(0.05)
+
 
 
 
@@ -150,8 +157,8 @@ if __name__ == "__main__":
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
     env.add(workshop)
 
-    sca = 0.001
-    obstruction = Mesh('Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl', scale=[sca, sca, sca], pose=SE3(1.5,0.2,0))
+    sca = 0.005
+    obstruction = Mesh('Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl', scale=[sca, sca, sca*1.1], pose=SE3(1.5,0.2,0))
     env.add(obstruction)
     #--------------------------------------------ROBOTS--------------------------------------------#
     r1 = Kuka()
@@ -175,20 +182,7 @@ if __name__ == "__main__":
     # Example animations that can be interrupted by e-stop
     c.Animating(r4.robot, should_run=e.estop.should_run)
     
-    steps = 50
-    q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
-    q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
-    q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
-    q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
 
-    for i in range(steps):
-        if not e.estop.should_run():
-            c.wait_until_run(should_run=e.estop.should_run, env=env)
-        r1.q = q1[i]
-        r2.q = q2[i]
-        r3.q = q3[i]
-        # r4.robot.q = q4[i]
-        env.step(0.05)
 
 
 

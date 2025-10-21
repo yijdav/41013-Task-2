@@ -315,6 +315,61 @@ class core:
                 self.penDots.append(penDot)
                 env.step(float(dt))
 
+    def rmrc_move_line(self, robot, env, target_pose: SE3, steps: int = 60, dt: float = 0.05,
+                        lam: float = 0.1, should_run=lambda: True):
+        """Move end-effector from current pose to target_pose using RMRC (DLS)."""
+        try:
+            current_pose = robot.fkine(robot.q)
+        except Exception:
+            # If fkine returns ndarray, wrap to SE3
+            current_pose = SE3(robot.fkine(robot.q))
+
+        for s in np.linspace(0.0, 1.0, steps):
+            if not should_run():
+                self.wait_until_run(should_run, env)
+
+            desired_pose = current_pose.interp(target_pose, s)
+
+            # Jacobian and velocity twist
+            J = robot.jacob0(robot.q)
+            now_pose = robot.fkine(robot.q)
+            try:
+                now_pose = now_pose  # SE3
+                R_current = now_pose.R
+            except Exception:
+                now_pose = SE3(now_pose)
+                R_current = now_pose.R
+            xdot = (desired_pose.t - now_pose.t) / dt
+
+            R_desired = desired_pose.R
+            R_diff = R_desired @ R_current.T
+            ang_diff = np.array([
+                R_diff[2,1]-R_diff[1,2],
+                R_diff[0,2]-R_diff[2,0],
+                R_diff[1,0]-R_diff[0,1]
+            ]) / 2.0 / dt
+
+            xdot_full = np.hstack((np.asarray(xdot, dtype=float).flatten(), ang_diff.astype(float)))
+
+            # DLS solve
+            JT = J.T
+            JJt = J @ JT
+            dq = JT @ np.linalg.inv(JJt + (lam**2) * np.eye(6)) @ xdot_full
+
+            robot.q = (np.asarray(robot.q, dtype=float) + dq * dt).astype(float)
+            env.step(float(dt))
+
+    def rmrc_move_offset(self, robot, env, dx: float = 0.0, dy: float = 0.0, dz: float = 0.0,
+                         steps: int = 60, dt: float = 0.05, lam: float = 0.1, should_run=lambda: True):
+        """RMRC move by a translational offset from current pose (keeps orientation)."""
+        fk = robot.fkine(robot.q)
+        try:
+            start_pose = fk
+        except Exception:
+            start_pose = SE3(fk)
+        target_pose = start_pose * SE3(dx, dy, dz)
+        self.rmrc_move_line(robot, env, target_pose, steps=steps, dt=dt, lam=lam, should_run=should_run)
+
     def Animating(self, robot, should_run=lambda: True):
         #DRAWING FIRST BOX
         box_dir = "Box.stl"
@@ -395,16 +450,21 @@ if __name__ == "__main__":
 
     e.obstructionMovement()
 
-    # Spawn 5 screws and 5 nuts, then sort: UR3 -> screws pile, ABB -> nuts pile
+    # Spawn 5 screws and 5 nuts
     c.add_m5_screws_and_nuts(env, count=5)
-    c.Animating(r4.robot, should_run=e.estop.should_run)
+
+    # Demonstrate RMRC: move UR3 and ABB by small offsets using RMRC
+    c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+    c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+
+    # Then sort: UR3 -> screws pile, ABB -> nuts pile
     c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
                            screw_pile_xy=(2.30, 0.60),
                            nut_pile_xy=(2.70, 0.60),
                            approach_h=0.15, pick_h=0.030, pile_h=0.030)
 
     # Optional: continue with other animations after sorting
-    
+    c.Animating(r4.robot, should_run=e.estop.should_run)
     
 
 

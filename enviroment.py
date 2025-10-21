@@ -26,6 +26,8 @@ class core:
         self.penDots = []
         self.m5_screw_mesh = None
         self.m5_nut_mesh = None
+        self.m5_screws = []
+        self.m5_nuts = []
 
     def add_m5_screw_and_nut(self, env,
                               screw_pose: SE3 | None = None,
@@ -80,6 +82,69 @@ class core:
         self.m5_nut_mesh = nut_mesh
 
         return screw_mesh, nut_mesh
+
+    def add_m5_screws_and_nuts(self, env,
+                                count: int = 5,
+                                screws_center: tuple[float, float] = (2.45, 0.75),
+                                nuts_center: tuple[float, float] = (2.65, 0.75),
+                                ring_radius: float = 0.10,
+                                z_height: float = 0.030,
+                                scale_mm_to_m: bool = True):
+        """
+        Add multiple M5 screws and nuts, spread out around two centers in small rings.
+
+        Parameters:
+            env: swift.Swift environment
+            count: number of screws and nuts each
+            screws_center: (x, y) center for screws ring
+            nuts_center: (x, y) center for nuts ring
+            ring_radius: radius of placement ring (meters)
+            z_height: placement height (meters)
+            scale_mm_to_m: scale meshes from mm to meters
+
+        Returns:
+            (screw_meshes, nut_meshes)
+        """
+        root = Path(__file__).parent
+        assets = root / "Environmental_models"
+        screw_path = (assets / "M5-Screw-95.stl").resolve()
+        nut_path = (assets / "M5-Nut-105.stl").resolve()
+
+        if not screw_path.exists():
+            raise FileNotFoundError(f"Missing STL: {screw_path}")
+        if not nut_path.exists():
+            raise FileNotFoundError(f"Missing STL: {nut_path}")
+
+        scale = [0.001, 0.001, 0.001] if scale_mm_to_m else [1.0, 1.0, 1.0]
+
+        screws = []
+        nuts = []
+
+        # Place screws in a small ring around screws_center
+        for i in range(count):
+            theta = 2 * np.pi * i / max(count, 1)
+            x = screws_center[0] + ring_radius * np.cos(theta)
+            y = screws_center[1] + ring_radius * np.sin(theta)
+            m = Mesh(str(screw_path), scale=scale, color=(0.75, 0.75, 0.75, 1.0))
+            m.T = SE3(float(x), float(y), float(z_height)) * SE3.Rx(-pi)
+            env.add(m)
+            screws.append(m)
+
+        # Place nuts in a small ring around nuts_center
+        for i in range(count):
+            theta = 2 * np.pi * i / max(count, 1)
+            x = nuts_center[0] + ring_radius * np.cos(theta)
+            y = nuts_center[1] + ring_radius * np.sin(theta)
+            m = Mesh(str(nut_path), scale=scale, color=(0.6, 0.6, 0.6, 1.0))
+            m.T = SE3(float(x), float(y), float(z_height))
+            env.add(m)
+            nuts.append(m)
+
+        # Save references
+        self.m5_screws = screws
+        self.m5_nuts = nuts
+
+        return screws, nuts
 
     def wait_until_run(self, should_run, env, sleep=0.01):
         # Pause here without blocking Swift/UI
@@ -235,7 +300,8 @@ if __name__ == "__main__":
 
     e.obstructionMovement()
 
-    c.add_m5_screw_and_nut(env)
+    # Spawn 5 screws and 5 nuts spread around two nearby centers
+    c.add_m5_screws_and_nuts(env, count=5)
 
     c.Animating(r4.robot, should_run=e.estop.should_run)
     

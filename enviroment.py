@@ -146,6 +146,101 @@ class core:
 
         return screws, nuts
 
+    # ---------------- sorting helpers ---------------- #
+    def _solve_ik(self, robot, T_goal, q0=None):
+        q0 = np.array(robot.q if q0 is None else q0, dtype=float)
+        try:
+            sol = robot.ikine_LM(T_goal, q0=q0, mask=[1, 1, 1, 1, 1, 1], joint_limits=True)
+            return np.array(sol.q, dtype=float)
+        except Exception:
+            # fallback: try without joint limits
+            sol = robot.ikine_LM(T_goal, q0=q0, mask=[1, 1, 1, 1, 1, 1])
+            return np.array(sol.q, dtype=float)
+
+    def _exec_traj(self, robot, env, q_start, q_end, steps=80, held=None, hold_offset=SE3(0, 0, -0.06)):
+        qs = rtb.jtraj(np.array(q_start, dtype=float), np.array(q_end, dtype=float), steps).q
+        for q in qs:
+            robot.q = np.array(q, dtype=float)
+            if held is not None:
+                ee = robot.fkine(robot.q)
+                held.T = ee * hold_offset
+            env.step(0.01)
+
+    def _pick_and_pile(self, robot, env, items, pile_xy, approach_h=0.15, pick_h_default=0.030, pile_h=0.030, orient_down=True):
+        """Pick each item by top-down grasp and place into a pile."""
+        for i, mesh in enumerate(items):
+            T_item = mesh.T
+            # Ensure SE3 type (Mesh.T may be a 4x4 ndarray)
+            try:
+                _ = T_item.t
+            except Exception:
+                T_item = SE3(T_item)
+            xyz = np.ravel(T_item.t)
+            x, y, z = float(xyz[0]), float(xyz[1]), float(xyz[2])
+            z_pick = z if not np.isnan(z) else pick_h_default
+            R_down = SE3.Rx(-pi) if orient_down else SE3()
+
+            # Approach above item
+            T_approach = SE3(x, y, max(approach_h, z_pick + 0.08)) * R_down
+            q_a = self._solve_ik(robot, T_approach, q0=robot.q)
+            self._exec_traj(robot, env, robot.q, q_a, steps=90)
+
+            # Descend to pick
+            T_pick = SE3(x, y, z_pick) * R_down
+            q_p = self._solve_ik(robot, T_pick, q0=q_a)
+            self._exec_traj(robot, env, robot.q, q_p, steps=60)
+
+            # Attach/follow
+            held = mesh
+
+            # Retreat
+            self._exec_traj(robot, env, robot.q, q_a, steps=60, held=held)
+
+            # Move above pile
+            T_pile_a = SE3(float(pile_xy[0]), float(pile_xy[1]), max(approach_h, pile_h + 0.02 * i + 0.08)) * R_down
+            q_pa = self._solve_ik(robot, T_pile_a, q0=robot.q)
+            self._exec_traj(robot, env, robot.q, q_pa, steps=100, held=held)
+
+            # Lower to pile
+            T_pile = SE3(float(pile_xy[0]), float(pile_xy[1]), pile_h + 0.01 * i) * R_down
+            q_pd = self._solve_ik(robot, T_pile, q0=q_pa)
+            self._exec_traj(robot, env, robot.q, q_pd, steps=60, held=held)
+
+            # Release (stop following)
+            held.T = T_pile
+            held = None
+
+            # Retract
+            self._exec_traj(robot, env, robot.q, q_pa, steps=60)
+
+    def sort_screws_and_nuts(self, env, ur3_robot, abb_robot,
+                              screw_pile_xy=(2.30, 0.60), nut_pile_xy=(2.70, 0.60),
+                              approach_h=0.15, pick_h=0.030, pile_h=0.030):
+        """
+        Use UR3 to pick all screws and pile them, and ABB to pick all nuts and pile them.
+        Assumes self.m5_screws and self.m5_nuts are populated.
+        """
+        # Set neutral poses (simple defaults)
+        try:
+            ur3_robot.q = np.array([0, -pi/2, pi/2, -pi/2, -pi/2, 0], dtype=float)
+        except Exception:
+            pass
+        try:
+            abb_robot.q = np.array([0, -pi/2, 0, 0, 0, 0], dtype=float)
+        except Exception:
+            pass
+        env.step(0.05)
+
+        # UR3 handles screws
+        if getattr(self, 'm5_screws', None):
+            self._pick_and_pile(ur3_robot, env, self.m5_screws, screw_pile_xy,
+                                approach_h=approach_h, pick_h_default=pick_h, pile_h=pile_h, orient_down=True)
+
+        # ABB handles nuts
+        if getattr(self, 'm5_nuts', None):
+            self._pick_and_pile(abb_robot, env, self.m5_nuts, nut_pile_xy,
+                                approach_h=approach_h, pick_h_default=pick_h, pile_h=pile_h, orient_down=True)
+
     def wait_until_run(self, should_run, env, sleep=0.01):
         # Pause here without blocking Swift/UI
         while not should_run():
@@ -300,10 +395,16 @@ if __name__ == "__main__":
 
     e.obstructionMovement()
 
-    # Spawn 5 screws and 5 nuts spread around two nearby centers
+    # Spawn 5 screws and 5 nuts, then sort: UR3 -> screws pile, ABB -> nuts pile
     c.add_m5_screws_and_nuts(env, count=5)
-
     c.Animating(r4.robot, should_run=e.estop.should_run)
+    c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
+                           screw_pile_xy=(2.30, 0.60),
+                           nut_pile_xy=(2.70, 0.60),
+                           approach_h=0.15, pick_h=0.030, pile_h=0.030)
+
+    # Optional: continue with other animations after sorting
+    
     
 
 

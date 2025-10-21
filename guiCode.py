@@ -190,7 +190,7 @@ class guiAndControl:
         )
         self.env.add(self.obstruction)
         Stride = 0.067  # metres per press
-        self.env.add(swift.Button(desc="⬅ Obstruction Left",  cb=lambda _: self.move_ob(-Stride, 0.0)))
-        self.env.add(swift.Button(desc="➡ Obstruction Right", cb=lambda _: self.move_ob( Stride, 0.0)))
-        self.env.add(swift.Button(desc="⬆ Obstruction Up",    cb=lambda _: self.move_ob(0.0,  Stride)))
-        self.env.add(swift.Button(desc="⬇ Obstruction Down",  cb=lambda _: self.move_ob(0.0, -Stride)))
+        self.env.add(swift.Button(desc="⬅ Obstruction Right",  cb=lambda _: self.move_ob(-Stride, 0.0)))
+        self.env.add(swift.Button(desc="➡ Obstruction Left", cb=lambda _: self.move_ob( Stride, 0.0)))
+        self.env.add(swift.Button(desc="⬆ Obstruction Down",    cb=lambda _: self.move_ob(0.0,  Stride)))
+        self.env.add(swift.Button(desc="⬇ Obstruction Up",  cb=lambda _: self.move_ob(0.0, -Stride)))

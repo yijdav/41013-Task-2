@@ -412,9 +412,6 @@ if __name__ == "__main__":
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
     env.add(workshop)
 
-    sca = 0.001
-    obstruction = Mesh('Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl', scale=[sca, sca, sca], pose=SE3(1.5,0.2,0))
-    env.add(obstruction)
     #--------------------------------------------ROBOTS--------------------------------------------#
     r1 = Kuka()
     r2 = abb()
@@ -450,7 +447,7 @@ if __name__ == "__main__":
                            nut_pile_xy=(2.70, 0.60),
                            approach_h=0.15, pick_h=0.030, pile_h=0.030)
 
-    # Optional: continue with other animations after sorting
+
     c.Animating(r4.robot, should_run=e.estop.should_run)
     
     steps = 50
@@ -465,7 +462,7 @@ if __name__ == "__main__":
         r1.q = q1[i]
         r2.q = q2[i]
         r3.q = q3[i]
-        # r4.robot.q = q4[i]
+        r4.robot.q = q4[i]
         env.step(0.05)
 
 

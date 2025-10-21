@@ -111,8 +111,8 @@ class core:
         for i in range(laps):        
             if not should_run(): break
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
-        box_mesh = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
-        env.add(box_mesh)
+        box1 = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        env.add(box1)
 
 
         #DRAWING SECOND BOX
@@ -120,22 +120,13 @@ class core:
         for i in range(laps):        
             if not should_run(): break
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
-        box_mesh = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
-        env.add(box_mesh)
+        box2 = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        env.add(box2)
 
             
         env.step(0.05)
         
         
-
-        # print("Still running!")
-        # env.step(0.1)
-        # cube = Mesh("cube.stl", pose=SE3(0,0,0), scale=(0.1,0.1,0.1))
-        # env.add(cube)
-
-
-
-
 
 
 

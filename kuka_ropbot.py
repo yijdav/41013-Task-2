@@ -50,7 +50,7 @@ class Kuka(DHRobot):
             [0.75, 0.45, 0.35, 1.0],  # Darker pale peachy orange
             [0.72, 0.42, 0.30, 1.0],  # Darker muted pale orange
             [0.78, 0.48, 0.38, 1.0],  # Darker light pale orange
-            [0.70, 0.40, 0.28, 1.0],  # Darker deeper pale orange
+            [0.70, 0.40, 0.28, 0.5],  # Darker deeper pale orange
             [0.77, 0.47, 0.37, 1.0],  # Darker soft pale orange
             [0.73, 0.43, 0.32, 1.0]   # Darker medium pale orange
         ]

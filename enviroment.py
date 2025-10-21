@@ -24,6 +24,62 @@ from guiCode import guiAndControl
 class core:
     def __init__(self):
         self.penDots = []
+        self.m5_screw_mesh = None
+        self.m5_nut_mesh = None
+
+    def add_m5_screw_and_nut(self, env,
+                              screw_pose: SE3 | None = None,
+                              nut_pose: SE3 | None = None,
+                              scale_mm_to_m: bool = True):
+        """
+        Add one M5 screw and one M5 nut into the environment.
+
+        - Loads `M5-Screw-95.stl` and `M5-Nut-105.stl` from the workspace root
+          (resolved relative to this file's directory).
+        - Applies 0.001 scale if meshes are in millimeters.
+        - Places them near the ABB robot area by default.
+
+        Parameters:
+            env: swift.Swift environment
+            screw_pose: SE3 pose for the screw (defaults to near ABB area)
+            nut_pose: SE3 pose for the nut (defaults to next to the screw)
+            scale_mm_to_m: if True, scales meshes from mm to meters
+
+        Returns:
+            (screw_mesh, nut_mesh)
+        """
+        root = Path(__file__).parent
+        assets = root / "Environmental_models"
+        screw_path = (assets / "M5-Screw-95.stl").resolve()
+        nut_path = (assets / "M5-Nut-105.stl").resolve()
+
+        if not screw_path.exists():
+            raise FileNotFoundError(f"Missing STL: {screw_path}")
+        if not nut_path.exists():
+            raise FileNotFoundError(f"Missing STL: {nut_path}")
+
+        scale = [0.001, 0.001, 0.001] if scale_mm_to_m else [1.0, 1.0, 1.0]
+
+        # Default poses: near ABB base at (2.5, 1, 0), placed in front at y ~ 0.8
+        if screw_pose is None:
+            screw_pose = SE3(2.50, 0.80, 0.030) * SE3.Rx(-pi)  # vertical orientation
+        if nut_pose is None:
+            nut_pose = SE3(2.60, 0.80, 0.030)  # flat on ground
+
+        screw_mesh = Mesh(str(screw_path), scale=scale, color=(0.75, 0.75, 0.75, 1.0))
+        nut_mesh = Mesh(str(nut_path), scale=scale, color=(0.6, 0.6, 0.6, 1.0))
+
+        screw_mesh.T = screw_pose
+        nut_mesh.T = nut_pose
+
+        env.add(screw_mesh)
+        env.add(nut_mesh)
+
+        # Store references for later sorting/pick routines
+        self.m5_screw_mesh = screw_mesh
+        self.m5_nut_mesh = nut_mesh
+
+        return screw_mesh, nut_mesh
 
     def wait_until_run(self, should_run, env, sleep=0.01):
         # Pause here without blocking Swift/UI
@@ -178,6 +234,8 @@ if __name__ == "__main__":
 
 
     e.obstructionMovement()
+
+    c.add_m5_screw_and_nut(env)
 
     c.Animating(r4.robot, should_run=e.estop.should_run)
     

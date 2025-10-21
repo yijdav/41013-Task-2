@@ -170,7 +170,6 @@ class Assignment2:
                 self.penDots.append(penDot)
                 env.step(float(dt))
 
-
     def drawBox(self,origin,sideLength,steps_per_side,laps,dt=0.05):
         self.penDots = []
         # Call the RMRC function where laps is how tall to make the box
@@ -239,3 +238,42 @@ if __name__ == "__main__":
 
     a2.CreateEnvironment()
     a2.AnimateCobot280()
+
+
+
+
+
+
+# def Animating(self, robot, should_run=lambda: True):
+#         #DRAWING FIRST BOX
+#         box_dir = "Box.stl"
+
+#         sideLength = 0.2
+#         dt=0.05
+#         steps_per_side=30      
+#         laps = 1
+#         origin = SE3(2.3,-1,0)* SE3(0.17,0.38,0.1) * SE3.Rx(-pi) #FIRST SE3 IS ROBOTS BASE SECOND IS OFFSET FROM ROBOT POS
+#         for i in range(laps):        
+#             if not should_run(): break
+#             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
+#         box_mesh = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+#         env.add(box_mesh)
+
+
+#         #DRAWING SECOND BOX
+#         origin = SE3(2.3,-1,0)* SE3(-0.28,0.38,0.1) * SE3.Rx(-pi) #ONLY CHANGING ORIGIN, OTHER VARIABLES REMAIN THE SAME SO NO NEED TO RESTATE
+#         for i in range(laps):        
+#             if not should_run(): break
+#             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
+#         box_mesh = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+#         env.add(box_mesh)
+
+            
+#         env.step(0.05)
+
+
+
+
+#     # Example animations that can be interrupted by e-stop
+#     c.Animating(r4.robot, should_run=e.estop.should_run)
+    

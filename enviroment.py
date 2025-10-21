@@ -382,6 +382,16 @@ if __name__ == "__main__":
     workshop = Mesh("Environmental_models/workshop.stl", scale=[sca, sca, sca])
     env.add(workshop)
 
+    sca = 0.002
+    env.add(Mesh("Environmental_models/stop_button_base.stl", scale=[sca, sca, sca], pose=SE3(1.19, -1.28, 0.64)*SE3.Rx(-pi/2)*SE3.Rz(pi), color=(1, 0, 0.2, 0.5)))
+    env.add(Mesh("Environmental_models/stop_button.stl", scale=[sca, sca, sca], pose=SE3(1.19, -1.28, 0.64)*SE3.Rx(-pi/2)*SE3.Rz(pi), color=(0.8, 0.8, 0.8, 1.0)))
+
+    sca = 0.1
+    env.add(Mesh("Environmental_models/safety_text.stl", scale=[sca, sca, sca], pose=SE3(2.13, -1.22, 0.89)*SE3.Rx(-pi/2)*SE3.Rz(pi), color=(0.9, 0.9, 0.9, 1.0)))
+
+    sca = 0.005
+    env.add(Mesh("Environmental_models/firetop.stl", scale=[sca, sca, sca], pose=SE3(1, -1.19, 0), color=(0.2, 0.2, 0.2, 1.0)))
+    env.add(Mesh("Environmental_models/firebottom.stl", scale=[sca, sca, sca], pose=SE3(1, -1.19, 0), color=(0.6, 0, 0.1, 1.0)))
     #--------------------------------------------ROBOTS--------------------------------------------#
     r1 = Kuka()
     r2 = abb()
@@ -400,7 +410,7 @@ if __name__ == "__main__":
     # Build GUI early so we can pass should_run into animations
     e = guiAndControl(env, r1, r2, r3, r4)
     e.robot_joint_control()  # buttons, sliders, e-stop
-
+    e.estop.start_hardware_estop_listener(port="COM4", baud=9600)  # adjust as needed
 
     e.obstructionMovement()
 

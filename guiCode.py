@@ -13,6 +13,8 @@ import trimesh
 import roboticstoolbox as rtb
 import os
 import time
+import serial
+import threading
 from kuka_ropbot import Kuka
 from abb import abb
 #from Cobot280 import myCobot280
@@ -25,6 +27,8 @@ class EStop:
         self.run_enabled = True    # true when motion is allowed
         self.on_engage = on_engage
         self.on_reset = on_reset
+        self.arduino = None
+        self._hw_thread = None
 
     def engage(self):
         self.engaged = True
@@ -51,6 +55,52 @@ class EStop:
     def should_run(self) -> bool:
         # Only move when not engaged AND explicitly resumed
         return (not self.engaged) and self.run_enabled
+    
+    def start_hardware_estop_listener(self, port='COM4', baud=9600, timeout=0.1):
+        """Opens the serial port and starts a background listener thread."""
+        try:
+            self.arduino = serial.Serial(port=port, baudrate=baud, timeout=timeout)
+            print(f"[HW E-STOP] Connected to {port} @ {baud}")
+        except Exception as e:
+            print(f"[HW E-STOP] Could not open {port}: {e}")
+            self.arduino = None
+            return
+
+        if self._hw_thread is None or not self._hw_thread.is_alive():
+            self._hw_thread = threading.Thread(target=self._hardware_estop_loop, daemon=True)
+            self._hw_thread.start()
+
+    def _hardware_estop_loop(self):
+        """Background serial loop. Accepts lines: ESTOP_Rn, CLEAR_Rn, CONFIRM_Rn."""
+        while True:
+            if self.arduino is None:
+                time.sleep(0.25)
+                continue
+            try:
+                line = self.arduino.readline().decode('utf-8', errors='ignore').strip()
+                if not line:
+                    time.sleep(0.02)
+                    continue
+
+                # Parse robot id (last number in the line)
+                rid = None
+                for token in line.split('_'):
+                    if token and token[-1].isdigit():
+                        rid = int(token[-1])
+
+                if line.startswith("ESTOP_R"):
+                    print(f"🚨 Hardware E-STOP pressed: Robot {rid}")
+                    self.engage()         # engage immediately
+                elif line.startswith("CLEAR_R"):
+                    print(f"✅ Hardware E-STOP cleared: Robot {rid}")
+                    self.reset()          # clear fault but DO NOT resume
+                elif line.startswith("CONFIRM_R"):
+                    print(f"⚪ Confirm release requested: Robot {rid}")
+                    # Optional: update a UI label here if you have one
+
+            except Exception as e:
+                print("[HW E-STOP] Read error:", e)
+                time.sleep(0.1)
 
 
 class guiAndControl:

@@ -437,15 +437,15 @@ if __name__ == "__main__":
     # Spawn 5 screws and 5 nuts
     c.add_m5_screws_and_nuts(env, count=5)
 
-    # Demonstrate RMRC: move UR3 and ABB by small offsets using RMRC
-    c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
-    c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+    # # Demonstrate RMRC: move UR3 and ABB by small offsets using RMRC
+    # c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+    # c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
 
-    # Then sort: UR3 -> screws pile, ABB -> nuts pile
-    c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
-                           screw_pile_xy=(2.30, 0.60),
-                           nut_pile_xy=(2.70, 0.60),
-                           approach_h=0.15, pick_h=0.030, pile_h=0.030)
+    # # Then sort: UR3 -> screws pile, ABB -> nuts pile
+    # c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
+    #                        screw_pile_xy=(2.30, 0.60),
+    #                        nut_pile_xy=(2.70, 0.60),
+    #                        approach_h=0.15, pick_h=0.030, pile_h=0.030)
 
 
     c.Animating(r4.robot, should_run=e.estop.should_run)

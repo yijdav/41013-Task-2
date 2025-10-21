@@ -1,4 +1,4 @@
-//push button is CB13 (pin 3)   
+
     
 const int buttonPins[3] = {2, 3, 4};   // Button1: Digital pin2, Button2:digital pin3, Button3:Digital pin4
 bool lastStates[3] = {HIGH, HIGH, HIGH};  

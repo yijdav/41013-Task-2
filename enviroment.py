@@ -33,23 +33,7 @@ class core:
                               screw_pose: SE3 | None = None,
                               nut_pose: SE3 | None = None,
                               scale_mm_to_m: bool = True):
-        """
-        Add one M5 screw and one M5 nut into the environment.
 
-        - Loads `M5-Screw-95.stl` and `M5-Nut-105.stl` from the workspace root
-          (resolved relative to this file's directory).
-        - Applies 0.001 scale if meshes are in millimeters.
-        - Places them near the ABB robot area by default.
-
-        Parameters:
-            env: swift.Swift environment
-            screw_pose: SE3 pose for the screw (defaults to near ABB area)
-            nut_pose: SE3 pose for the nut (defaults to next to the screw)
-            scale_mm_to_m: if True, scales meshes from mm to meters
-
-        Returns:
-            (screw_mesh, nut_mesh)
-        """
         root = Path(__file__).parent
         assets = root / "Environmental_models"
         screw_path = (assets / "M5-Screw-95.stl").resolve()
@@ -90,21 +74,7 @@ class core:
                                 ring_radius: float = 0.10,
                                 z_height: float = 0.030,
                                 scale_mm_to_m: bool = True):
-        """
-        Add multiple M5 screws and nuts, spread out around two centers in small rings.
 
-        Parameters:
-            env: swift.Swift environment
-            count: number of screws and nuts each
-            screws_center: (x, y) center for screws ring
-            nuts_center: (x, y) center for nuts ring
-            ring_radius: radius of placement ring (meters)
-            z_height: placement height (meters)
-            scale_mm_to_m: scale meshes from mm to meters
-
-        Returns:
-            (screw_meshes, nut_meshes)
-        """
         root = Path(__file__).parent
         assets = root / "Environmental_models"
         screw_path = (assets / "M5-Screw-95.stl").resolve()
@@ -434,21 +404,18 @@ if __name__ == "__main__":
 
     e.obstructionMovement()
 
-    # Spawn 5 screws and 5 nuts
     c.add_m5_screws_and_nuts(env, count=5)
-
-    # # Demonstrate RMRC: move UR3 and ABB by small offsets using RMRC
-    # c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
-    # c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
-
-    # # Then sort: UR3 -> screws pile, ABB -> nuts pile
-    # c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
-    #                        screw_pile_xy=(2.30, 0.60),
-    #                        nut_pile_xy=(2.70, 0.60),
-    #                        approach_h=0.15, pick_h=0.030, pile_h=0.030)
-
-
     c.Animating(r4.robot, should_run=e.estop.should_run)
+
+    c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+    c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+
+
+    c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
+                            screw_pile_xy=(2.30, 0.60),
+                            nut_pile_xy=(2.70, 0.60),
+                            approach_h=0.15, pick_h=0.030, pile_h=0.030)
+
     
     steps = 50
     q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q

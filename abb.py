@@ -17,7 +17,7 @@ from swift import Button
 class abb(DHRobot):
     #https://github.com/ros-industrial/abb/tree/kinetic-devel/abb_crb15000_support/meshes/crb15000_5_95
     def __init__(self):
-        sca = 1  # Scale factor for the meshes
+        sca = 0.5  # Scale factor for the meshes
         links = [
             DHLink(a=0,      alpha=0, d=0, offset=0),
             DHLink(a=0,  alpha=pi/2,    d=0.266*sca,     offset=0),

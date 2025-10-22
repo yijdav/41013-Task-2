@@ -509,7 +509,53 @@ if __name__ == "__main__":
     joy = pygame.joystick.Joystick(0) if pygame.joystick.get_count() > 0 else None
     if joy: joy.init()
 
+    # --- proximity alert: hot dog near KUKA ---
+    HOTDOG_NEAR_THRESH = 0.35  # metres (XY-plane distance)
+    hotdog_near_flag = False
+
+    def _xy_from_pose(T_like):
+        try:
+            # T_like might be an SE3 or a 4x4 ndarray
+            T_se3 = T_like if hasattr(T_like, 't') else SE3(T_like)
+            t = np.ravel(T_se3.t).astype(float)
+            return float(t[0]), float(t[1])
+        except Exception:
+            return None
+
     while True:
         e.joystick_tick(joy, 0.02, 0.3, 0.8, 0.1, 0.1, 0.5)  # gated by e.stop
+
+        # Proximity check each tick (non-blocking)
+        try:
+            # Hot dog pose
+            T_hotdog = getattr(e, 'obstruction', None)
+            T_hotdog = getattr(T_hotdog, 'T', None) if T_hotdog is not None else None
+            # KUKA base pose
+            T_kuka_base = getattr(r1, 'base', None)
+
+            hotdog_xy = _xy_from_pose(T_hotdog) if T_hotdog is not None else None
+            kuka_xy = _xy_from_pose(T_kuka_base) if T_kuka_base is not None else None
+
+            if hotdog_xy is not None and kuka_xy is not None:
+                dx = hotdog_xy[0] - kuka_xy[0]
+                dy = hotdog_xy[1] - kuka_xy[1]
+                dist = float(np.hypot(dx, dy))
+
+                if dist < HOTDOG_NEAR_THRESH and not hotdog_near_flag:
+                    print(f"[ALERT] Hot dog near KUKA: {dist:.2f} m (threshold {HOTDOG_NEAR_THRESH:.2f} m)")
+                    hotdog_near_flag = True
+                elif dist >= HOTDOG_NEAR_THRESH and hotdog_near_flag:
+                    # Reset flag when it moves away so we can alert again on next approach
+                    hotdog_near_flag = False
+
+                # Update UI label (if available)
+                try:
+                    e.set_proximity_status(is_near=(dist < HOTDOG_NEAR_THRESH), dist=dist, thresh=HOTDOG_NEAR_THRESH)
+                except Exception:
+                    pass
+        except Exception:
+            # Never let a UI/loop crash due to proximity calc
+            pass
+
         env.step(0)
         time.sleep(0.01)

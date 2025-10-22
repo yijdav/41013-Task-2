@@ -112,6 +112,8 @@ class guiAndControl:
         self.joystick_enabled = {"v": False}
         self._sliders = []
         self.estop = EStop(on_engage=on_estop, on_reset=None)
+        # UI elements
+        self.prox_label = None
 
     # --- selection ---
     def select_kuka(self, _=None):
@@ -176,6 +178,14 @@ class guiAndControl:
             )
             self.env.add(s)
             self._sliders.append(s)
+
+        # Proximity status label (non-interactive button used as label)
+        try:
+            self.prox_label = swift.Button(desc="[Proximity] --", cb=lambda _: None)
+            self.env.add(self.prox_label)
+        except Exception:
+            # If UI element creation fails, keep going silently
+            self.prox_label = None
 
     # --- joystick ---
     @staticmethod
@@ -245,3 +255,21 @@ class guiAndControl:
         self.env.add(swift.Button(desc="➡ Obstruction Left", cb=lambda _: self.move_ob( Stride, 0.0)))
         self.env.add(swift.Button(desc="⬆ Obstruction Down",    cb=lambda _: self.move_ob(0.0,  Stride)))
         self.env.add(swift.Button(desc="⬇ Obstruction Up",  cb=lambda _: self.move_ob(0.0, -Stride)))
+
+    # --- proximity UI update ---
+    def set_proximity_status(self, is_near: bool, dist: float | None, thresh: float | None):
+        """Update UI label with proximity state; safe no-op if UI unavailable."""
+        if self.prox_label is None:
+            return
+        try:
+            if dist is None:
+                txt = "[Proximity] --"
+            else:
+                if is_near:
+                    txt = f"[Proximity] 🔴 NEAR: {dist:.2f} m (< {thresh:.2f} m)"
+                else:
+                    txt = f"[Proximity] 🟢 SAFE: {dist:.2f} m (≥ {thresh:.2f} m)"
+            # Attempt to update the button's description
+            self.prox_label.desc = txt
+        except Exception:
+            pass

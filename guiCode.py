@@ -71,7 +71,6 @@ class EStop:
             self._hw_thread.start()
 
     def _hardware_estop_loop(self):
-        """Background serial loop. Accepts lines: ESTOP_Rn, CLEAR_Rn, CONFIRM_Rn."""
         while True:
             if self.arduino is None:
                 time.sleep(0.25)
@@ -96,8 +95,9 @@ class EStop:
                     self.reset()          # clear fault but DO NOT resume
                 elif line.startswith("CONFIRM_R"):
                     print(f"⚪ Confirm release requested: Robot {rid}")
-                    self.resume()         # resume motion if possible
-                    # Optional: update a UI label here if you have one
+                    self.resume()
+                    self.run_enabled = True        
+                 
 
             except Exception as e:
                 print("[HW E-STOP] Read error:", e)

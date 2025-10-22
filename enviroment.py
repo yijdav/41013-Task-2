@@ -516,6 +516,8 @@ if __name__ == "__main__":
 
     c.detach_follow(box2)
 
+    desired_q_r1 = np.deg2rad([0, 120, -35, 140, 0, -30])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
 
 # Moving ur3 and abb --------------------------------------------------------------------
     # c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)

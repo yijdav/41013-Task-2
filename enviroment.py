@@ -28,8 +28,8 @@ class core:
         self.m5_nut_mesh = None
         self.m5_screws = []
         self.m5_nuts = []
-        # Keep motions above this Z to avoid the arm going underground
         self.min_z = 0.05  # meters
+        self._followers = []  # (obj, robot, offset)
 
     def add_m5_screw_and_nut(self, env,
                               screw_pose: SE3 | None = None,
@@ -309,10 +309,7 @@ class core:
         try:
             current_pose = robot.fkine(robot.q)
         except Exception:
-            # If fkine returns ndarray, wrap to SE3
             current_pose = SE3(robot.fkine(robot.q))
-
-        # Clamp target Z
         target_pose = self._clamp_pose_z(target_pose, self.min_z)
 
         for s in np.linspace(0.0, 1.0, steps):
@@ -322,15 +319,12 @@ class core:
             desired_pose = current_pose.interp(target_pose, s)
             desired_pose = self._clamp_pose_z(desired_pose, self.min_z)
 
-            # Jacobian and velocity twist
             J = robot.jacob0(robot.q)
             now_pose = robot.fkine(robot.q)
             try:
-                now_pose = now_pose  # SE3
                 R_current = now_pose.R
             except Exception:
-                now_pose = SE3(now_pose)
-                R_current = now_pose.R
+                now_pose = SE3(now_pose); R_current = now_pose.R
             xdot = (desired_pose.t - now_pose.t) / dt
 
             R_desired = desired_pose.R
@@ -342,13 +336,14 @@ class core:
             ]) / 2.0 / dt
 
             xdot_full = np.hstack((np.asarray(xdot, dtype=float).flatten(), ang_diff.astype(float)))
-
-            # DLS solve
             JT = J.T
             JJt = J @ JT
             dq = JT @ np.linalg.inv(JJt + (lam**2) * np.eye(6)) @ xdot_full
 
             robot.q = (np.asarray(robot.q, dtype=float) + dq * dt).astype(float)
+            # update any followers while moving
+            if self._followers:
+                self.update_followers()
             env.step(float(dt))
 
     def rmrc_move_offset(self, robot, env, dx: float = 0.0, dy: float = 0.0, dz: float = 0.0,
@@ -365,7 +360,7 @@ class core:
 
     def Animating(self, robot, should_run=lambda: True):
         #DRAWING FIRST BOX
-        box_dir = "Box.stl"
+        box_dir = "Environmental_models/centeredBox.stl"
 
         sideLength = 0.2
         dt=0.05
@@ -375,7 +370,12 @@ class core:
         for i in range(laps):        
             if not should_run(): break
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
-        box1 = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        box1 = Mesh(box_dir, pose=SE3(2.3,-1,0)* SE3(0.27,0.31,0), scale = (1,1,1), color = (0.7,0.2,0.2))
+        env.add(box1)
+
+
+        #DRAWING SECOND BOX
+        origin = SE3(2.3,-1,0)* SE3(-0.26,0.41,0.1) * SE3.Rx(-pi) #ONLY CHANGING ORIGIN, OTHER VARIABLES REMAIN THE
         env.add(box1)
 
 
@@ -384,7 +384,7 @@ class core:
         for i in range(laps):        
             if not should_run(): break
             self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
-        box2 = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
+        box2 = Mesh(box_dir, pose=SE3(2.3,-1,0)* SE3(-0.16,0.31,0), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box2)
 
         env.step(0.05)
@@ -392,13 +392,6 @@ class core:
         
 
     def move_to_joint_positions(self, robot, env, q_target, steps=50, dt=0.05, should_run=lambda: True, held=None, hold_offset=SE3(0, 0, -0.06)):
-        """
-        Move 'robot' to desired joint positions q_target (radians) using a smooth jtraj.
-        - steps: number of interpolation steps
-        - dt: step time for env.step
-        - should_run: gating function (e-stop), called each step
-        - held: optional Mesh/Shape to follow the end-effector with offset
-        """
         q0 = np.asarray(robot.q, dtype=float)
         qt = np.asarray(q_target, dtype=float)
 
@@ -413,6 +406,8 @@ class core:
             if held is not None:
                 ee = robot.fkine(robot.q)
                 held.T = ee * hold_offset
+            if self._followers:
+                self.update_followers()
             env.step(float(dt))
         return np.asarray(robot.q, dtype=float)
 
@@ -423,7 +418,30 @@ class core:
             return SE3.Rt(SE3.Rx(-pi).R, np.ravel(T_world_offset.t))
         return T_world_offset
 
+    def attach_follow(self, obj, robot, offset=SE3(0, 0, -0.06)):
+        """Start making obj follow robot's end-effector with given offset."""
+        for o, r, _ in self._followers:
+            if o is obj and r is robot:
+                return
+        self._followers.append((obj, robot, offset))
 
+    def detach_follow(self, obj):
+        """Stop following for this object."""
+        self._followers = [(o, r, off) for (o, r, off) in self._followers if o is not obj]
+
+    def update_followers(self, env=None):
+        """Update all followers' poses to match their robot TCPs."""
+        for (obj, robot, offset) in list(self._followers):
+            try:
+                ee = robot.fkine(robot.q)
+            except Exception:
+                ee = SE3(robot.fkine(robot.q))
+            T = ee * offset
+            try:
+                obj.T = T
+            except Exception:
+                # some shapes use .pose
+                obj.pose = T
 
 if __name__ == "__main__":
     env = swift.Swift()
@@ -469,26 +487,31 @@ if __name__ == "__main__":
 
     c.add_m5_screws_and_nuts(env, count=5)
 
-    
-    desired_q_r1 = np.deg2rad([0, -90, -30, -90, 0, -30])
-    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
-
-    desired_q_r1 = np.deg2rad([0, 75, -40, -115, 0, -20])
-    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
 
 # Moving Cobot --------------------------------------------------------------------
     # c.Animating(r4.robot, should_run=e.estop.should_run)
     box1, box2 = c.Animating(r4.robot, should_run=e.estop.should_run)
 
 # Moving Kuka --------------------------------------------------------------------
-    T_goal = box1.T
-    c.rmrc_move_line(r1, env, T_goal, steps=80, dt=0.03, lam=0.1, should_run=e.estop.should_run)
-
-    T_goal = c.pose_above(box1)
-    c.rmrc_move_line(r1, env, T_goal, steps=80, dt=0.03, lam=0.1, should_run=e.estop.should_run)
-
-    desired_q_r1 = np.deg2rad([0, -90, -30, -80, -15, 0])
+    desired_q_r1 = np.deg2rad([0, -90, -30, -90, 0, -30])
     c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
+
+    c.attach_follow(box1, r1, offset=SE3(0, -0.133, 0)*SE3.Rx(-pi/2))  # tune offset to your TCP
+
+    desired_q_r1 = np.deg2rad([0, 75, -40, -115, 0, -20])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
+
+    c.detach_follow(box1)
+
+    desired_q_r1 = np.deg2rad([0, -125, 0, -10, 0, -70])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
+
+    c.attach_follow(box2, r1, offset=SE3(0, -0.133, 0)*SE3.Rx(-pi/2))
+
+    desired_q_r1 = np.deg2rad([0, 120, -35, -90, 0, -30])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
+    
+    c.detach_follow(box2)
 
 
 # Moving ur3 and abb --------------------------------------------------------------------

@@ -28,6 +28,8 @@ class core:
         self.m5_nut_mesh = None
         self.m5_screws = []
         self.m5_nuts = []
+        # Keep motions above this Z to avoid the arm going underground
+        self.min_z = 0.05  # meters
 
     def add_m5_screw_and_nut(self, env,
                               screw_pose: SE3 | None = None,
@@ -69,8 +71,8 @@ class core:
 
     def add_m5_screws_and_nuts(self, env,
                                 count: int = 5,
-                                screws_center: tuple[float, float] = (2.45, 0.75),
-                                nuts_center: tuple[float, float] = (2.65, 0.75),
+                                screws_center: tuple[float, float] = (2.35, 0.65),
+                                nuts_center: tuple[float, float] = (2.55, 0.65),
                                 ring_radius: float = 0.10,
                                 z_height: float = 0.030,
                                 scale_mm_to_m: bool = True):
@@ -136,8 +138,22 @@ class core:
                 held.T = ee * hold_offset
             env.step(0.01)
 
+    @staticmethod
+    def _rt_from(T_se3):
+        return T_se3.R, np.ravel(T_se3.t)
+
+    def _clamp_pose_z(self, T_goal, min_z):
+        """Clamp the Z component of a pose to be at least min_z, preserving rotation."""
+        try:
+            R, t = self._rt_from(T_goal)
+        except Exception:
+            T_goal = SE3(T_goal)
+            R, t = self._rt_from(T_goal)
+        t = np.array(t, dtype=float)
+        t[2] = max(float(t[2]), float(min_z))
+        return SE3.Rt(R, t)
+
     def _pick_and_pile(self, robot, env, items, pile_xy, approach_h=0.15, pick_h_default=0.030, pile_h=0.030, orient_down=True):
-        """Pick each item by top-down grasp and place into a pile."""
         for i, mesh in enumerate(items):
             T_item = mesh.T
             # Ensure SE3 type (Mesh.T may be a 4x4 ndarray)
@@ -148,15 +164,18 @@ class core:
             xyz = np.ravel(T_item.t)
             x, y, z = float(xyz[0]), float(xyz[1]), float(xyz[2])
             z_pick = z if not np.isnan(z) else pick_h_default
+            z_pick = max(z_pick, self.min_z)
             R_down = SE3.Rx(-pi) if orient_down else SE3()
 
             # Approach above item
             T_approach = SE3(x, y, max(approach_h, z_pick + 0.08)) * R_down
+            T_approach = self._clamp_pose_z(T_approach, self.min_z + 0.02)
             q_a = self._solve_ik(robot, T_approach, q0=robot.q)
             self._exec_traj(robot, env, robot.q, q_a, steps=90)
 
             # Descend to pick
             T_pick = SE3(x, y, z_pick) * R_down
+            T_pick = self._clamp_pose_z(T_pick, self.min_z)
             q_p = self._solve_ik(robot, T_pick, q0=q_a)
             self._exec_traj(robot, env, robot.q, q_p, steps=60)
 
@@ -168,11 +187,13 @@ class core:
 
             # Move above pile
             T_pile_a = SE3(float(pile_xy[0]), float(pile_xy[1]), max(approach_h, pile_h + 0.02 * i + 0.08)) * R_down
+            T_pile_a = self._clamp_pose_z(T_pile_a, self.min_z + 0.02)
             q_pa = self._solve_ik(robot, T_pile_a, q0=robot.q)
             self._exec_traj(robot, env, robot.q, q_pa, steps=100, held=held)
 
             # Lower to pile
             T_pile = SE3(float(pile_xy[0]), float(pile_xy[1]), pile_h + 0.01 * i) * R_down
+            T_pile = self._clamp_pose_z(T_pile, self.min_z)
             q_pd = self._solve_ik(robot, T_pile, q0=q_pa)
             self._exec_traj(robot, env, robot.q, q_pd, steps=60, held=held)
 
@@ -186,10 +207,7 @@ class core:
     def sort_screws_and_nuts(self, env, ur3_robot, abb_robot,
                               screw_pile_xy=(2.30, 0.60), nut_pile_xy=(2.70, 0.60),
                               approach_h=0.15, pick_h=0.030, pile_h=0.030):
-        """
-        Use UR3 to pick all screws and pile them, and ABB to pick all nuts and pile them.
-        Assumes self.m5_screws and self.m5_nuts are populated.
-        """
+
         # Set neutral poses (simple defaults)
         try:
             ur3_robot.q = np.array([0, -pi/2, pi/2, -pi/2, -pi/2, 0], dtype=float)
@@ -294,11 +312,15 @@ class core:
             # If fkine returns ndarray, wrap to SE3
             current_pose = SE3(robot.fkine(robot.q))
 
+        # Clamp target Z
+        target_pose = self._clamp_pose_z(target_pose, self.min_z)
+
         for s in np.linspace(0.0, 1.0, steps):
             if not should_run():
                 self.wait_until_run(should_run, env)
 
             desired_pose = current_pose.interp(target_pose, s)
+            desired_pose = self._clamp_pose_z(desired_pose, self.min_z)
 
             # Jacobian and velocity twist
             J = robot.jacob0(robot.q)
@@ -338,6 +360,7 @@ class core:
         except Exception:
             start_pose = SE3(fk)
         target_pose = start_pose * SE3(dx, dy, dz)
+        target_pose = self._clamp_pose_z(target_pose, self.min_z)
         self.rmrc_move_line(robot, env, target_pose, steps=steps, dt=dt, lam=lam, should_run=should_run)
 
     def Animating(self, robot, should_run=lambda: True):
@@ -422,8 +445,8 @@ if __name__ == "__main__":
 
 
     c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
-                            screw_pile_xy=(2.30, 0.60),
-                            nut_pile_xy=(2.70, 0.60),
+                            screw_pile_xy=(2.30, 0.50),
+                            nut_pile_xy=(2.70, 0.50),
                             approach_h=0.15, pick_h=0.030, pile_h=0.030)
 
     

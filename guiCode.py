@@ -96,6 +96,7 @@ class EStop:
                     self.reset()          # clear fault but DO NOT resume
                 elif line.startswith("CONFIRM_R"):
                     print(f"⚪ Confirm release requested: Robot {rid}")
+                    self.resume()         # resume motion if possible
                     # Optional: update a UI label here if you have one
 
             except Exception as e:

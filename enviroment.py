@@ -387,11 +387,41 @@ class core:
         box2 = Mesh(box_dir, pose=SE3(origin.t[0],origin.t[1],0)*SE3.Rx(pi/2), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box2)
 
-            
         env.step(0.05)
-        
+        return box1, box2
         
 
+    def move_to_joint_positions(self, robot, env, q_target, steps=50, dt=0.05, should_run=lambda: True, held=None, hold_offset=SE3(0, 0, -0.06)):
+        """
+        Move 'robot' to desired joint positions q_target (radians) using a smooth jtraj.
+        - steps: number of interpolation steps
+        - dt: step time for env.step
+        - should_run: gating function (e-stop), called each step
+        - held: optional Mesh/Shape to follow the end-effector with offset
+        """
+        q0 = np.asarray(robot.q, dtype=float)
+        qt = np.asarray(q_target, dtype=float)
+
+        if q0.shape != qt.shape:
+            raise ValueError(f"q_target shape {qt.shape} does not match robot.q shape {q0.shape}")
+
+        qs = rtb.jtraj(q0, qt, int(steps)).q
+        for q in qs:
+            if not should_run():
+                self.wait_until_run(should_run, env)
+            robot.q = np.asarray(q, dtype=float)
+            if held is not None:
+                ee = robot.fkine(robot.q)
+                held.T = ee * hold_offset
+            env.step(float(dt))
+        return np.asarray(robot.q, dtype=float)
+
+    def pose_above(self, obj, z_up=0.4, dx=-0.3, dy=0.2, tool_down=True): #box mesh not centered at origin
+        T_obj = obj.T if hasattr(obj.T, "t") else SE3(obj.T)
+        T_world_offset = SE3(float(dx), float(dy), float(z_up)) * T_obj
+        if tool_down:
+            return SE3.Rt(SE3.Rx(-pi).R, np.ravel(T_world_offset.t))
+        return T_world_offset
 
 
 
@@ -438,32 +468,39 @@ if __name__ == "__main__":
     e.obstructionMovement()
 
     c.add_m5_screws_and_nuts(env, count=5)
-    c.Animating(r4.robot, should_run=e.estop.should_run)
 
-    c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
-    c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+    
+    desired_q_r1 = np.deg2rad([0, -90, -30, -90, 0, -30])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
+
+    desired_q_r1 = np.deg2rad([0, 75, -40, -115, 0, -20])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
+
+# Moving Cobot --------------------------------------------------------------------
+    # c.Animating(r4.robot, should_run=e.estop.should_run)
+    box1, box2 = c.Animating(r4.robot, should_run=e.estop.should_run)
+
+# Moving Kuka --------------------------------------------------------------------
+    T_goal = box1.T
+    c.rmrc_move_line(r1, env, T_goal, steps=80, dt=0.03, lam=0.1, should_run=e.estop.should_run)
+
+    T_goal = c.pose_above(box1)
+    c.rmrc_move_line(r1, env, T_goal, steps=80, dt=0.03, lam=0.1, should_run=e.estop.should_run)
+
+    desired_q_r1 = np.deg2rad([0, -90, -30, -80, -15, 0])
+    c.move_to_joint_positions(r1, env, desired_q_r1, steps=50, dt=0.05, should_run=e.estop.should_run)
 
 
+# Moving ur3 and abb --------------------------------------------------------------------
+    # c.rmrc_move_offset(r3, env, dx=0.00, dy=-0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
+    # c.rmrc_move_offset(r2, env, dx=0.00, dy=0.10, dz=0.05, steps=60, dt=0.05, should_run=e.estop.should_run)
     c.sort_screws_and_nuts(env, ur3_robot=r3, abb_robot=r2,
                             screw_pile_xy=(2.30, 0.50),
                             nut_pile_xy=(2.70, 0.50),
                             approach_h=0.15, pick_h=0.030, pile_h=0.030)
 
     
-    steps = 50
-    q1 = rtb.jtraj(r1.q, [joint - pi/4 for joint in r1.q], steps).q
-    q2 = rtb.jtraj(r2.q, [joint - pi/4 for joint in r2.q], steps).q
-    q3 = rtb.jtraj(r3.q, [joint - 0.8 for joint in r3.q], steps).q
-    q4 = rtb.jtraj(r4.robot.q, [joint - 0.8 for joint in r4.robot.q], steps).q
 
-    for i in range(steps):
-        if not e.estop.should_run():
-            c.wait_until_run(should_run=e.estop.should_run, env=env)
-        r1.q = q1[i]
-        r2.q = q2[i]
-        r3.q = q3[i]
-        r4.robot.q = q4[i]
-        env.step(0.05)
 
 
 

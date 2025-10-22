@@ -68,8 +68,8 @@ class Kuka(DHRobot):
             link.geometry = [Mesh(mesh_path, scale=[sca, sca, sca], pose=mesh_transforms[i],color=yellow_colors[i])]
         DHRobot.__init__(self, links, name='KUKA')
         # Set a test joint configuration for visualization
-        self.q = [0, -pi/2, 0, 0, 0, 0]
-        self._qtest = [0,-pi/2,0,0,0,0]
+        self.q = [0, -pi/2, -pi/2, 0, 0, 0]
+        self._qtest = [0,-pi/2,-pi/2,0,0,0]
 
     def set_joint(self, j, value):
         """Set joint value from slider (value in degrees)"""

@@ -247,14 +247,16 @@ class guiAndControl:
         self.obstruction = Mesh(
             'Environmental_models/snapchat-dancing-hotdog-meme-whole-hotdog.stl',
             scale=(sca, sca, sca * 1.1),
-            pose=SE3(1.5, 0.2, 0.0),
+            pose=SE3(1, 0.2, 0.0) * SE3.Rz(pi),
         )
         self.env.add(self.obstruction)
         Stride = 0.067  # metres per press
-        self.env.add(swift.Button(desc="⬅ Obstruction Right",  cb=lambda _: self.move_ob(-Stride, 0.0)))
-        self.env.add(swift.Button(desc="➡ Obstruction Left", cb=lambda _: self.move_ob( Stride, 0.0)))
-        self.env.add(swift.Button(desc="⬆ Obstruction Down",    cb=lambda _: self.move_ob(0.0,  Stride)))
-        self.env.add(swift.Button(desc="⬇ Obstruction Up",  cb=lambda _: self.move_ob(0.0, -Stride)))
+        self.env.add(swift.Button(desc="➡ Obstruction Right",  cb=lambda _: self.move_ob(-Stride, 0.0)))
+        self.env.add(swift.Button(desc="⬅ Obstruction Left", cb=lambda _: self.move_ob( Stride, 0.0)))
+        self.env.add(swift.Button(desc="⬇ Obstruction Down",    cb=lambda _: self.move_ob(0.0,  Stride)))
+        self.env.add(swift.Button(desc="⬆ Obstruction Up",  cb=lambda _: self.move_ob(0.0, -Stride)))
+
+
 
     # --- proximity UI update ---
     def set_proximity_status(self, is_near: bool, dist: float | None, thresh: float | None):

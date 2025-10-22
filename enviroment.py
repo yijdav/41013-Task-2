@@ -239,11 +239,7 @@ class core:
                 orient_down=True, should_run=should_run  # <- pass through
             )
 
-    def wait_until_run(self, should_run, env, sleep=0.01):
-        # Pause here without blocking Swift/UI
-        while not should_run():
-            env.step(0)
-            time.sleep(sleep)
+
 
     def rmrc_draw_square(self, robot, env, origin, side_length, steps_per_side, dt, should_run=lambda: True):
         #Defines the corners of the square, using origin as a starting point
@@ -368,6 +364,12 @@ class core:
         target_pose = self._clamp_pose_z(target_pose, self.min_z)
         self.rmrc_move_line(robot, env, target_pose, steps=steps, dt=dt, lam=lam, should_run=should_run)
 
+    def wait_until_run(self, should_run, env, sleep=0.01):
+        while not should_run():
+            env.step(0)
+            time.sleep(sleep)
+
+
     def Animating(self, robot, should_run=lambda: True):
         #DRAWING FIRST BOX
         box_dir = "Environmental_models/centeredBox.stl"
@@ -383,9 +385,8 @@ class core:
         box1 = Mesh(box_dir, pose=SE3(2.3,-1,0)* SE3(0.27,0.31,0), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box1)
 
-
         #DRAWING SECOND BOX
-        origin = SE3(2.3,-1,0)* SE3(-0.26,0.41,0.1) * SE3.Rx(-pi) #ONLY CHANGING ORIGIN, OTHER VARIABLES REMAIN THE
+        origin = SE3(2.3,-1,0)* SE3(-0.26,0.41,0.1) * SE3.Rx(-pi) 
         self.rmrc_draw_square(robot, env, origin*SE3(0,0,-i*0.01), sideLength, steps_per_side, dt, should_run=should_run)
         box2 = Mesh(box_dir, pose=SE3(2.3,-1,0)* SE3(-0.16,0.31,0), scale = (1,1,1), color = (0.7,0.2,0.2))
         env.add(box2)
@@ -397,9 +398,6 @@ class core:
     def move_to_joint_positions(self, robot, env, q_target, steps=50, dt=0.05, should_run=lambda: True, held=None, hold_offset=SE3(0, 0, -0.06)):
         q0 = np.asarray(robot.q, dtype=float)
         qt = np.asarray(q_target, dtype=float)
-
-        if q0.shape != qt.shape:
-            raise ValueError(f"q_target shape {qt.shape} does not match robot.q shape {q0.shape}")
 
         qs = rtb.jtraj(q0, qt, int(steps)).q
         for q in qs:
@@ -414,37 +412,25 @@ class core:
             env.step(float(dt))
         return np.asarray(robot.q, dtype=float)
 
-    # def pose_above(self, obj, z_up=0.4, dx=-0.3, dy=0.2, tool_down=True): #box mesh not centered at origin
-    #     T_obj = obj.T if hasattr(obj.T, "t") else SE3(obj.T)
-    #     T_world_offset = SE3(float(dx), float(dy), float(z_up)) * T_obj
-    #     if tool_down:
-    #         return SE3.Rt(SE3.Rx(-pi).R, np.ravel(T_world_offset.t))
-    #     return T_world_offset
 
     def attach_follow(self, obj, robot, offset=SE3(0, 0, -0.06)):
-        """Start making obj follow robot's end-effector with given offset."""
         for o, r, _ in self._followers:
             if o is obj and r is robot:
                 return
         self._followers.append((obj, robot, offset))
 
     def detach_follow(self, obj):
-        """Stop following for this object."""
         self._followers = [(o, r, off) for (o, r, off) in self._followers if o is not obj]
 
     def update_followers(self, env=None):
-        """Update all followers' poses to match their robot TCPs."""
         for (obj, robot, offset) in list(self._followers):
-            try:
-                ee = robot.fkine(robot.q)
-            except Exception:
-                ee = SE3(robot.fkine(robot.q))
+            ee = robot.fkine(robot.q)
             T = ee * offset
-            try:
-                obj.T = T
-            except Exception:
-                # some shapes use .pose
-                obj.pose = T
+            obj.T = T
+
+
+
+
 
 if __name__ == "__main__":
     env = swift.Swift()
@@ -537,53 +523,52 @@ if __name__ == "__main__":
     joy = pygame.joystick.Joystick(0) if pygame.joystick.get_count() > 0 else None
     if joy: joy.init()
 
-    # --- proximity alert: hot dog near KUKA ---
-    HOTDOG_NEAR_THRESH = 0.35  # metres (XY-plane distance)
-    hotdog_near_flag = False
+    # # --- proximity alert: hot dog near KUKA ---
+    # HOTDOG_NEAR_THRESH = 0.35  # metres (XY-plane distance)
+    # hotdog_near_flag = False
 
-    def _xy_from_pose(T_like):
-        try:
-            # T_like might be an SE3 or a 4x4 ndarray
-            T_se3 = T_like if hasattr(T_like, 't') else SE3(T_like)
-            t = np.ravel(T_se3.t).astype(float)
-            return float(t[0]), float(t[1])
-        except Exception:
-            return None
+    # def _xy_from_pose(T_like):
+    #     try:
+    #         # T_like might be an SE3 or a 4x4 ndarray
+    #         T_se3 = T_like if hasattr(T_like, 't') else SE3(T_like)
+    #         t = np.ravel(T_se3.t).astype(float)
+    #         return float(t[0]), float(t[1])
+    #     except Exception:
+    #         return None
 
     while True:
         e.joystick_tick(joy, 0.02, 0.3, 0.8, 0.1, 0.1, 0.5)  # gated by e.stop
 
-        # Proximity check each tick (non-blocking)
-        try:
-            # Hot dog pose
-            T_hotdog = getattr(e, 'obstruction', None)
-            T_hotdog = getattr(T_hotdog, 'T', None) if T_hotdog is not None else None
-            # KUKA base pose
-            T_kuka_base = getattr(r1, 'base', None)
+        # # Proximity check each tick (non-blocking)
+        # try:
+        #     # Hot dog pose
+        #     T_hotdog = getattr(e, 'obstruction', None)
+        #     T_hotdog = getattr(T_hotdog, 'T', None) if T_hotdog is not None else None
+        #     # KUKA base pose
+        #     T_kuka_base = getattr(r1, 'base', None)
 
-            hotdog_xy = _xy_from_pose(T_hotdog) if T_hotdog is not None else None
-            kuka_xy = _xy_from_pose(T_kuka_base) if T_kuka_base is not None else None
+        #     hotdog_xy = _xy_from_pose(T_hotdog) if T_hotdog is not None else None
+        #     kuka_xy = _xy_from_pose(T_kuka_base) if T_kuka_base is not None else None
 
-            if hotdog_xy is not None and kuka_xy is not None:
-                dx = hotdog_xy[0] - kuka_xy[0]
-                dy = hotdog_xy[1] - kuka_xy[1]
-                dist = float(np.hypot(dx, dy))
+        #     if hotdog_xy is not None and kuka_xy is not None:
+        #         dx = hotdog_xy[0] - kuka_xy[0]
+        #         dy = hotdog_xy[1] - kuka_xy[1]
+        #         dist = float(np.hypot(dx, dy))
 
-                if dist < HOTDOG_NEAR_THRESH and not hotdog_near_flag:
-                    print(f"[ALERT] Hot dog near KUKA: {dist:.2f} m (threshold {HOTDOG_NEAR_THRESH:.2f} m)")
-                    hotdog_near_flag = True
-                elif dist >= HOTDOG_NEAR_THRESH and hotdog_near_flag:
-                    # Reset flag when it moves away so we can alert again on next approach
-                    hotdog_near_flag = False
+        #         if dist < HOTDOG_NEAR_THRESH and not hotdog_near_flag:
+        #             print(f"[ALERT] Hot dog near KUKA: {dist:.2f} m (threshold {HOTDOG_NEAR_THRESH:.2f} m)")
+        #             hotdog_near_flag = True
+        #         elif dist >= HOTDOG_NEAR_THRESH and hotdog_near_flag:
+        #             # Reset flag when it moves away so we can alert again on next approach
+        #             hotdog_near_flag = False
 
-                # Update UI label (if available)
-                try:
-                    e.set_proximity_status(is_near=(dist < HOTDOG_NEAR_THRESH), dist=dist, thresh=HOTDOG_NEAR_THRESH)
-                except Exception:
-                    pass
-        except Exception:
-            # Never let a UI/loop crash due to proximity calc
-            pass
+        #         # Update UI label (if available)
+        #         try:
+        #             e.set_proximity_status(is_near=(dist < HOTDOG_NEAR_THRESH), dist=dist, thresh=HOTDOG_NEAR_THRESH)
+        #         except Exception:
+        #             pass
+        # except Exception:
+        #     pass
 
         env.step(0)
         time.sleep(0.01)
